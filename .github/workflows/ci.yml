@@ -1,0 +1,24 @@
+name: Integrate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: holepunchto/actions/node-base@v1
+      - run: npm ci
+      - run: npm run lint
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: holepunchto/actions/node-base@v1
+      - run: npm ci
+      - run: npm test
