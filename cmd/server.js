@@ -19,6 +19,11 @@ module.exports = async function server(cmd) {
     console.log(
       `${style().foreground('white').render('Port:')} ${style().foreground('gray').render(port)}`
     )
+    console.log(
+      `${style().foreground('white').render('Lobby:')} ${style()
+        .foreground('gray')
+        .render(cmd.flags.lobby || 'PUBLIC')}`
+    )
   })
   op.on('announced', () => {
     console.log(style().foreground(DOWNLOAD).render('Server is running!'))
@@ -27,7 +32,7 @@ module.exports = async function server(cmd) {
     const host = ip.includes(':') ? `[${ip}]` : ip
     const peer =
       style().foreground('white').render(host) +
-      (port ? style().foreground('gray').render(`:${port}`) : '')
+      (port ? style().foreground('gray').render(`:${port}`.padEnd(6)) : '')
     const download = style()
       .foreground(DOWNLOAD)
       .render(`↓ ${formatSize(sent)}`)

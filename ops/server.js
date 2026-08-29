@@ -112,7 +112,8 @@ function serve(socket, onresult) {
 
       ready = true
       socket.setTimeout(SESSION_TIMEOUT)
-      setDeadline(SESSION_TIMEOUT)
+      clearTimeout(deadline)
+      deadline = null
       socket.write(READY)
     }
 

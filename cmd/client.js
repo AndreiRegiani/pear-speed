@@ -20,10 +20,11 @@ module.exports = async function client(cmd) {
   }
 
   const topic = cmd.flags.lobby === undefined ? undefined : parseTopic(cmd.flags.lobby)
+  const lobby = cmd.flags.lobby || 'PUBLIC'
   const op = new Client(PEERS, topic)
 
   if (tty.isTTY(0) && tty.isTTY(1)) {
-    await runTui(op)
+    await runTui(op, lobby)
     return
   }
 
@@ -33,8 +34,9 @@ module.exports = async function client(cmd) {
 }
 
 class ClientModel {
-  constructor(op) {
+  constructor(op, lobby) {
     this.op = op
+    this.lobby = lobby
     this.peerLimit = op.peerLimit
     this.snapshot = { phase: 'finding', elapsed: 0, peerLimit: op.peerLimit, peers: [] }
     this.result = null
@@ -187,7 +189,8 @@ class ClientModel {
 
   view() {
     const title = style().bold(true).foreground(DOWNLOAD).render('🍐 PEAR SPEED')
-    const subtitle = style().faint(true).italic(true).render('P2P speed test')
+    const subtitle = style().faint(true).render('P2P speed test')
+    const lobby = `${style().foreground('white').render('Lobby:')} ${style().foreground('gray').render(this.lobby)}`
     const phase = this._phase()
     this.bar.gradient =
       this.snapshot.phase === 'finding' || this.snapshot.phase === 'download'
@@ -205,6 +208,7 @@ class ClientModel {
       '',
       `  ${title}  ${subtitle}`,
       '',
+      `  ${lobby}`,
       body,
       '',
       `  ${phase}`,
@@ -230,7 +234,9 @@ class ClientModel {
       const activity = style().foreground('yellow').render(this.spinner.view())
       return `${activity} Verifying results`
     }
-    if (this.snapshot.phase === 'done') return `Completed · ${this.snapshot.peers.length} peers`
+    if (this.snapshot.phase === 'done') {
+      return `Completed · ${this.snapshot.peers.length} ${this.snapshot.peers.length === 1 ? 'peer' : 'peers'}`
+    }
     const upload = this.snapshot.phase === 'upload'
     const remaining = Math.max(0, Math.ceil((DURATION - this.snapshot.elapsed) / 1000))
     const direction = style()
@@ -272,8 +278,8 @@ class ClientModel {
   }
 }
 
-async function runTui(op) {
-  const model = new ClientModel(op)
+async function runTui(op, lobby) {
+  const model = new ClientModel(op, lobby)
   const program = new Program(model, { altScreen: false })
   model._resize(program.output.columns || 80, program.output.rows || 24)
   const onupdate = (snapshot) => program.send({ type: 'state', snapshot })
