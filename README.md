@@ -53,6 +53,7 @@ Hyperswarm discovers peers and provides encrypted UDX streams transfering at max
 | `pear-runtime`   | P2P application updates              |
 | `corestore`      | Update data storage                  |
 | `framed-stream`  | Runtime worker IPC                   |
+| `ip3country`     | Local IPv4 country lookup            |
 | `b4a`, `bare-*`  | Bare runtime primitives              |
 
 ## Local Development
@@ -81,3 +82,7 @@ npm run test
 ## License
 
 Apache-2.0
+
+## Credits
+
+pear-speed uses the IP2Location LITE database for [IP geolocation](https://www.ip2location.com).

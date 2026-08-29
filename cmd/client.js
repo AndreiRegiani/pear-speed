@@ -2,6 +2,7 @@
 
 const tty = require('bare-tty')
 const { Program, key, progress, quit, spinner, style, table } = require('bare-tui')
+const ip3country = require('ip3country')
 const Client = require('../ops/client')
 const { PEERS, DURATION, PHASE_DURATION } = require('../ops/constants')
 const { DOWNLOAD, UPLOAD } = require('./colors')
@@ -12,6 +13,8 @@ const LATENCY = '#C792EA'
 const BORDER = 'gray'
 const DOWNLOAD_BAR = ['#007A5A', DOWNLOAD]
 const UPLOAD_BAR = ['#315F9F', UPLOAD]
+
+ip3country.init()
 
 module.exports = async function client(cmd) {
   if (cmd.flags.version) {
@@ -208,7 +211,7 @@ class ClientModel {
       '',
       `  ${title}  ${subtitle}`,
       '',
-      `  ${lobby}`,
+      `    ${lobby}`,
       body,
       '',
       `  ${phase}`,
@@ -297,8 +300,9 @@ function printResults(result) {
   console.log('')
   console.log('  🍐 PEAR SPEED')
   for (const peer of result.peers) {
+    const address = formatAddress(peer)
     console.log(
-      `  ${formatAddress(peer).padEnd(22)}  ${formatLatency(peer.latency).padStart(8)}  ↓ ${formatSpeed(peer.downloadSpeed).padStart(12)}  ↑ ${formatSpeed(peer.uploadSpeed).padStart(12)}`
+      `  ${address}${' '.repeat(Math.max(0, 25 - style.width(address)))}  ${formatLatency(peer.latency).padStart(8)}  ↓ ${formatSpeed(peer.downloadSpeed).padStart(12)}  ↑ ${formatSpeed(peer.uploadSpeed).padStart(12)}`
     )
   }
   console.log('')
@@ -325,9 +329,28 @@ function formatLatency(ms) {
 }
 
 function formatAddress(peer, styled = false) {
+  const country = ip3country.lookupStr(peer.ip)
+  const octets = peer.ip.split('.').map(Number)
+  const lan =
+    (octets.length === 4 &&
+      octets.every((octet) => Number.isInteger(octet) && octet >= 0 && octet <= 255) &&
+      (octets[0] === 10 ||
+        octets[0] === 127 ||
+        (octets[0] === 169 && octets[1] === 254) ||
+        (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
+        (octets[0] === 192 && octets[1] === 168))) ||
+    peer.ip === '::' ||
+    peer.ip === '::1' ||
+    /^f[cd][0-9a-f]{2}:/i.test(peer.ip) ||
+    /^fe[89ab][0-9a-f]:/i.test(peer.ip)
+  const marker = country
+    ? `${String.fromCodePoint(country.charCodeAt(0) + 127397, country.charCodeAt(1) + 127397)} `
+    : lan
+      ? '🏠 '
+      : ''
   let host = peer.ip.includes(':') ? `[${peer.ip}]` : peer.ip
   if (styled && peer.failed) host = style().foreground('red').render(host)
-  if (!peer.port) return host
+  if (!peer.port) return marker + host
   const port = `:${peer.port}`
-  return host + (styled ? style().faint(true).render(port) : port)
+  return marker + host + (styled ? style().faint(true).render(port) : port)
 }
