@@ -1,11 +1,12 @@
-#!/usr/bin/env node
+#!/usr/bin/env bare
 
 'use strict'
 
-const os = require('os')
-const { spawn } = require('child_process')
+const env = require('bare-env')
+const os = require('bare-os')
+const { spawn } = require('bare-subprocess')
 
-const host = process.env.HOST || `${os.platform()}-${os.arch()}`
+const host = env.HOST || `${os.platform()}-${os.arch()}`
 const supported = [
   'darwin-arm64',
   'darwin-x64',
@@ -17,7 +18,7 @@ const supported = [
 
 if (!supported.includes(host)) {
   console.error(`Unsupported host: ${host}`)
-  process.exitCode = 1
+  Bare.exitCode = 1
 } else {
   const child = spawn(
     'bare-build',
@@ -26,9 +27,9 @@ if (!supported.includes(host)) {
   )
   child.on('error', (err) => {
     console.error(err)
-    process.exitCode = 1
+    Bare.exitCode = 1
   })
   child.on('exit', (code, signal) => {
-    process.exitCode = signal ? 1 : code
+    Bare.exitCode = signal ? 1 : code
   })
 }
