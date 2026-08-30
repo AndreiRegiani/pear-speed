@@ -58,6 +58,14 @@ Hyperswarm discovers peers and provides encrypted UDX streams transfering at max
 
 ## Local Development
 
+Install Bare:
+
+```sh
+npm i -g bare
+```
+
+Install dependencies and run:
+
 ```sh
 npm ci
 npm run client
