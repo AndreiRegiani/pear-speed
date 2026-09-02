@@ -14,6 +14,7 @@ const BORDER = 'gray'
 const DOWNLOAD_BAR = ['#007A5A', DOWNLOAD]
 const UPLOAD_BAR = ['#315F9F', UPLOAD]
 const MAX_SERVER_LOGS = 100
+const WHOAMI_VALUE_WIDTH = 18
 const ACTION_COLORS = [
   '#FFB347',
   '#FFBA50',
@@ -46,7 +47,7 @@ class PeerModel {
   constructor(op, lobby) {
     this.op = op
     this.lobby = lobby
-    this.snapshot = { phase: 'opening', elapsed: 0, serving: [], peers: [] }
+    this.snapshot = { phase: 'opening', elapsed: 0, publicIP: null, serving: [], peers: [] }
     this.result = null
     this.error = null
     this.exiting = false
@@ -54,7 +55,7 @@ class PeerModel {
     this.activeTable = 'peer'
     this.maxTableHeight = 10
     this.serverLogs = []
-    this.spinner = spinner.create({ frames: spinner.points, fps: 6 })
+    this.spinner = spinner.create({ frames: spinner.points, fps: 8 })
     this.servingSpinner = spinner.create({ frames: spinner.dots, fps: 8 })
     this.bar = progress.create({
       width: 50,
@@ -210,10 +211,12 @@ class PeerModel {
         ` ${style().foreground('gray').render(formatTime(entry.timestamp))} ${formatAddress({ ip: entry.ip })}`
       ])
       .concat(
-        this.snapshot.serving.map((ip) => [
+        this.snapshot.serving.map((entry) => [
           style()
             .foreground(DOWNLOAD)
-            .render(` ${this.servingSpinner.view()} ${formatAddress({ ip })}`)
+            .render(
+              ` ${formatTime(entry.timestamp)} ${formatAddress({ ip: entry.ip })} ${this.servingSpinner.view()}`
+            )
         ])
       )
     if (!serverLogRows.length) serverLogRows.push([' -'])
@@ -381,7 +384,16 @@ class PeerModel {
   }
 
   _footer() {
-    return style().faint(true).render('[q] Quit')
+    const key = style().foreground('white').render('[q]')
+    const quit = `${key} ${style().foreground('gray').render('Quit')}`
+    const label = style().foreground('white').render('whoami:')
+    const address =
+      this.snapshot.publicIP && ip3country.lookupStr(this.snapshot.publicIP)
+        ? formatAddress({ ip: this.snapshot.publicIP })
+        : this.servingSpinner.view()
+    const value = style().foreground('gray').width(WHOAMI_VALUE_WIDTH).render(address)
+    const separator = style().foreground('gray').render(' · ')
+    return `${label} ${value}${separator}${quit}`
   }
 
   _startAction(label) {
@@ -449,8 +461,8 @@ function formatLobby(value) {
 function formatSpeed(bytesPerSecond) {
   if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) return '-'
   const bits = bytesPerSecond * 8
-  if (bits >= 1e9) return `${(bits / 1e9).toFixed(2)} Gbps`
-  if (bits >= 1e6) return `${(bits / 1e6).toFixed(1)} Mbps`
+  if (bits >= 1e9) return `${Math.floor(bits / 1e9)} Gbps`
+  if (bits >= 1e6) return `${Math.floor(bits / 1e6)} Mbps`
   if (bits >= 1e3) return `${(bits / 1e3).toFixed(1)} Kbps`
   return `${bits.toFixed(0)} bps`
 }

@@ -189,7 +189,7 @@ module.exports = class Peer extends EventEmitter {
     if (data === null) return
     if (data.byteLength) return peer.socket.destroy()
     peer.mode = 'serving-download'
-    peer.service = { sent: 0, received: 0 }
+    peer.service = { startedAt: Date.now(), sent: 0, received: 0 }
     this._setDeadline(peer, this.sessionTimeout)
     this._sendDownload(peer)
     this._update()
@@ -250,7 +250,7 @@ module.exports = class Peer extends EventEmitter {
       peer.done = true
       peer.lost = true
       peer.mode = 'serving-download'
-      peer.service = { sent: 0, received: 0 }
+      peer.service = { startedAt: Date.now(), sent: 0, received: 0 }
       this._setDeadline(peer, this.sessionTimeout)
       this._sendDownload(peer)
       this._update()
@@ -421,7 +421,10 @@ module.exports = class Peer extends EventEmitter {
     return {
       phase: this.phase,
       elapsed,
-      serving: this.peers.filter((peer) => peer.mode.startsWith('serving-')).map((peer) => peer.ip),
+      publicIP: this.swarm.dht.host ? normalizeIP(this.swarm.dht.host) : null,
+      serving: this.peers
+        .filter((peer) => peer.mode.startsWith('serving-'))
+        .map((peer) => ({ timestamp: peer.service.startedAt, ip: peer.ip })),
       peers: peers
         .filter((peer) => peer.ready && !peer.dropping)
         .map((peer) => ({

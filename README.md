@@ -1,37 +1,48 @@
 # pear-speed
 
-Peer-to-peer network speed test.
+Peer-to-peer network speed test powered by Hyperswarm.
+
+## Usage
 
 ```console
 $ pear-speed
 ```
 
+Peers join the public lobby by default.
+
 ## Private lobbies
 
 ```console
-$ pear-speed --lobby some-random-name
+$ pear-speed --lobby "any secret"
 ```
 
-Lobby names are hashed into a private 32-byte Hyperwarm topic.
+The lobby name is hashed into an isolated 32-byte Hyperswarm topic.
 
-## CLI Options
+## Options
 
-| Option            | Description                |
-| ----------------- | -------------------------- |
-| `--lobby <name>`  | Defaults to public lobby   |
-| `--version`, `-v` | Show the installed version |
+| Option            | Description          |
+| ----------------- | -------------------- |
+| `--lobby <name>`  | Join a private lobby |
+| `--version`, `-v` | Show the version     |
+| `--help`, `-h`    | Show help            |
 
-## Local Development
+## Development
 
-Install Bare:
+Install dependencies and run locally:
 
 ```sh
-npm i -g bare
 npm ci
 npm start
 ```
 
-## Building standalone executables
+## Test
+
+```sh
+npm run lint
+npm test
+```
+
+## Build
 
 ```sh
 npm run make
@@ -39,17 +50,6 @@ npm run make
 
 Standalone builds are written to `out/<platform>-<arch>/pear-speed`.
 
-## Testing
-
-```sh
-npm run lint
-npm run test
-```
-
 ## License
 
 Apache-2.0
-
-## Credits
-
-pear-speed uses the bundled IP2Location LITE data ([source](https://lite.ip2location.com)) to display IP flags.

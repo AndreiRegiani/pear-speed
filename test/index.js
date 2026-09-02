@@ -11,8 +11,8 @@ const { PeerModel, finalView } = require('../cmd/peer')
 const { TOPIC, HELLO, DOWNLOAD, DATA, MAX_PEERS, DISCOVERY_INTERVAL } = require('../ops/constants')
 
 test('lobby names deterministically derive isolated swarm topics', (t) => {
-  const first = createTopic('this is my lobby')
-  const same = createTopic('this is my lobby')
+  const first = createTopic('any secret')
+  const same = createTopic('any secret')
   const different = createTopic('another lobby')
   t.is(first.byteLength, 32)
   t.ok(b4a.equals(first, same))
@@ -135,6 +135,35 @@ test('discovery retries promptly for late peers', (t) => {
   t.is(DISCOVERY_INTERVAL, 2_000)
 })
 
+test('snapshots include the public IP observed by the DHT', (t) => {
+  const speedTest = Object.create(Peer.prototype)
+  speedTest.phase = 'idle'
+  speedTest.startedAt = 0
+  speedTest.run = null
+  speedTest.peers = []
+  speedTest.swarm = { dht: { host: '8.8.8.8' } }
+
+  t.is(speedTest.snapshot().publicIP, '8.8.8.8')
+  speedTest.swarm.dht.host = null
+  t.is(speedTest.snapshot().publicIP, null)
+})
+
+test('speed formatting only uses decimals below one Mbps', (t) => {
+  const model = new PeerModel({}, 'PUBLIC')
+  model.result = {
+    peers: [],
+    downloadSpeed: 230_800_000 / 8,
+    uploadSpeed: 875_500 / 8
+  }
+
+  const result = style.stripAnsi(model._resultView())
+  t.ok(result.includes('↓ 230 Mbps'))
+  t.ok(result.includes('↑ 875.5 Kbps'))
+
+  model.result.downloadSpeed = 1_900_000_000 / 8
+  t.ok(style.stripAnsi(model._resultView()).includes('↓ 1 Gbps'))
+})
+
 test('a lower-latency arrival only replaces a fully idle peer', (t) => {
   const peers = Array.from({ length: MAX_PEERS }, (_, index) => {
     const peer = createPeer()
@@ -255,6 +284,9 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   t.is(ready, '32 peers')
   t.absent(ready.includes('Ready'))
   t.ok(model._actions().includes('[ENTER] Start test'))
+  t.absent(model._actions().includes('🔥'))
+  t.absent(model._actions().includes('\x1b[1;'))
+  t.is(model.spinner.fps, 8)
   const view = model.view().split('\n')
   t.is(view.length, 18)
   t.ok(
@@ -263,9 +295,20 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   t.ok(view.join('\n').includes('Peers'))
   t.absent(view.join('\n').includes('IP address'))
   t.absent(view.join('\n').includes('P2P speed test'))
-  t.ok(new PeerModel({}, 'my-lobby').view().includes('🔒 my-lobby'))
-  t.ok(view[17].includes('[q] Quit'))
+  t.ok(new PeerModel({}, 'any secret').view().includes('🔒 any secret'))
+  t.ok(style.stripAnsi(view[17]).includes('[q] Quit'))
+  t.ok(style.stripAnsi(view[17]).includes('whoami: ⠋'))
   t.absent(view[17].includes('[ENTER]'))
+  const loadingQuitColumn = style.width(style.stripAnsi(model._footer()).split('[q]')[0])
+  model.snapshot.publicIP = '8.8.8.8'
+  t.ok(model._footer().includes('\x1b[37mwhoami:\x1b[0m'))
+  t.ok(model._footer().includes('\x1b[90m🇺🇸 8.8.8.8'))
+  t.ok(model._footer().includes('\x1b[37m[q]\x1b[0m'))
+  t.ok(model._footer().includes('\x1b[90mQuit\x1b[0m'))
+  t.is(style.width(style.stripAnsi(model._footer()).split('[q]')[0]), loadingQuitColumn)
+  model.snapshot.publicIP = '127.0.0.1'
+  t.absent(model._footer().includes('127.0.0.1'))
+  t.ok(style.stripAnsi(model._footer()).includes('whoami: ⠋'))
   const resultRow = view.findIndex((row) => row.includes('TOTAL'))
   t.is(view[resultRow + 1], '')
   t.is(view[resultRow + 2], '')
@@ -293,6 +336,7 @@ test('the peer table renders, truncates, and scrolls', (t) => {
 
 test('the server log records completed tests and remains bounded', (t) => {
   const model = new PeerModel({}, 'PUBLIC')
+  const timestamp = new Date(2026, 0, 2, 3, 4, 5).getTime()
   model.update({ type: 'resize', width: 150, height: 24 })
   t.is(model.peerTable.columns[0].width, 26)
   t.is(model.peerTable.totalWidth, 87)
@@ -312,12 +356,16 @@ test('the server log records completed tests and remains bounded', (t) => {
 
   model.update({
     type: 'state',
-    snapshot: { phase: 'idle', elapsed: 0, serving: ['192.168.100.42'], peers: [] }
+    snapshot: {
+      phase: 'idle',
+      elapsed: 0,
+      serving: [{ timestamp, ip: '192.168.100.42' }],
+      peers: []
+    }
   })
-  t.ok(model.serverLogTable.rows[0][0].includes('192.168.100.42'))
+  t.is(style.stripAnsi(model.serverLogTable.rows[0][0]), ' 2026-01-02 03:04:05 🏠 192.168.100.42 ⠋')
   t.ok(model.serverLogTable.rows[0][0].includes('\x1b[38;2;0;217;163m'))
 
-  const timestamp = new Date(2026, 0, 2, 3, 4, 5).getTime()
   model.update({
     type: 'state',
     snapshot: { phase: 'idle', elapsed: 0, serving: [], peers: [] }
@@ -373,6 +421,8 @@ test('four peers test together, serve concurrently, and repeat', { timeout: 20_0
   peers[3].on('served', (entry) => served.push(entry))
   const first = peers[0].test()
   await waitFor(() => peers[1].snapshot().serving.length === 1)
+  t.is(typeof peers[1].snapshot().serving[0].timestamp, 'number')
+  t.is(typeof peers[1].snapshot().serving[0].ip, 'string')
   const concurrent = peers[1].test()
   t.is(peers[1].snapshot().peers.length, 2)
   const [firstResult, concurrentResult] = await Promise.all([first, concurrent])
