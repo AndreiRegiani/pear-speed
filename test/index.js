@@ -5,10 +5,10 @@ const { randomBytes } = require('bare-crypto')
 const { KeyMsg, style } = require('bare-tui')
 const test = require('brittle')
 const createTestnet = require('hyperdht/testnet')
-const Peer = require('../ops/peer')
+const Peer = require('../lib/peer')
 const createTopic = require('../cmd/topic')
 const { PeerModel, finalView } = require('../cmd/peer')
-const { TOPIC, HELLO, DOWNLOAD, DATA, MAX_PEERS, DISCOVERY_INTERVAL } = require('../ops/constants')
+const { TOPIC, HELLO, DOWNLOAD, DATA, MAX_PEERS, DISCOVERY_INTERVAL } = require('../lib/constants')
 
 test('lobby names deterministically derive isolated swarm topics', (t) => {
   const first = createTopic('any secret')
@@ -268,7 +268,7 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   for (let i = 0; i < 5; i++) model.update(new KeyMsg({ name: 'down' }))
 
   t.is(model.peerTable.rows.length, 32)
-  t.is(model.peerTable.height, 3)
+  t.is(model.peerTable.height, 2)
   t.is(model.bar.width, 50)
   t.ok(model.peerTable.rows[0][0].includes('127.0.0.32'))
   t.ok(model.peerTable.rows[31][0].includes('127.0.0.1'))
@@ -286,7 +286,10 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   t.ok(model._actions().includes('[ENTER] Start test'))
   t.absent(model._actions().includes('🔥'))
   t.absent(model._actions().includes('\x1b[1;'))
-  t.is(model.spinner.fps, 8)
+  t.ok(model._actions().includes('\x1b[38;2;255;152;0m'))
+  model.spinner.tag = 10
+  t.ok(model._actions().includes('\x1b[38;2;255;241;140m'))
+  t.is(model.spinner.fps, 6)
   const view = model.view().split('\n')
   t.is(view.length, 18)
   t.ok(
@@ -305,6 +308,7 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   t.ok(model._footer().includes('\x1b[90m🇺🇸 8.8.8.8'))
   t.ok(model._footer().includes('\x1b[37m[q]\x1b[0m'))
   t.ok(model._footer().includes('\x1b[90mQuit\x1b[0m'))
+  t.absent(model._footer().includes('·'))
   t.is(style.width(style.stripAnsi(model._footer()).split('[q]')[0]), loadingQuitColumn)
   model.snapshot.publicIP = '127.0.0.1'
   t.absent(model._footer().includes('127.0.0.1'))
@@ -318,6 +322,10 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   t.is(completed, 'Completed · 2 peers')
   t.ok(model._actions().includes('Press [ENTER] to start'))
   t.ok(model.view().includes('100%'))
+  const completedView = model.view().split('\n')
+  const completedRow = completedView.findIndex((row) => row.includes('Completed'))
+  t.is(completedView[completedRow - 1], '')
+  t.is(completedView[completedRow - 2], '')
   t.ok(finalView(model).startsWith('\x1b[H\x1b[2J\n  Completed · 2 peers\n'))
   t.ok(finalView(model).includes('100%'))
   t.ok(finalView(model).includes('TOTAL'))

@@ -3,8 +3,8 @@
 const tty = require('bare-tty')
 const { Program, key, progress, quit, spinner, style, table } = require('bare-tui')
 const ip3country = require('ip3country')
-const Peer = require('../ops/peer')
-const { DURATION, PHASE_DURATION } = require('../ops/constants')
+const Peer = require('../lib/peer')
+const { DURATION, PHASE_DURATION } = require('../lib/constants')
 const { DOWNLOAD, UPLOAD } = require('./colors')
 const createTopic = require('./topic')
 const pkg = require('../package.json')
@@ -16,18 +16,24 @@ const UPLOAD_BAR = ['#315F9F', UPLOAD]
 const MAX_SERVER_LOGS = 100
 const WHOAMI_VALUE_WIDTH = 18
 const ACTION_COLORS = [
+  '#FF9800',
+  '#FFA126',
+  '#FFAA36',
   '#FFB347',
-  '#FFBA50',
-  '#FFC159',
-  '#FFC862',
-  '#FFD06B',
-  '#FFD775',
-  '#FFE082',
-  '#FFD775',
-  '#FFD06B',
-  '#FFC862',
-  '#FFC159',
-  '#FFBA50'
+  '#FFBC50',
+  '#FFC55A',
+  '#FFCE64',
+  '#FFD76E',
+  '#FFE078',
+  '#FFE982',
+  '#FFF18C',
+  '#FFE982',
+  '#FFE078',
+  '#FFD76E',
+  '#FFCE64',
+  '#FFC55A',
+  '#FFBC50',
+  '#FFAA36'
 ]
 ip3country.init()
 
@@ -55,7 +61,7 @@ class PeerModel {
     this.activeTable = 'peer'
     this.maxTableHeight = 10
     this.serverLogs = []
-    this.spinner = spinner.create({ frames: spinner.points, fps: 8 })
+    this.spinner = spinner.create({ frames: spinner.points, fps: 6 })
     this.servingSpinner = spinner.create({ frames: spinner.dots, fps: 8 })
     this.bar = progress.create({
       width: 50,
@@ -249,7 +255,7 @@ class PeerModel {
     const uploadWidth = remainingWidth - latencyWidth - downloadWidth
     this.narrow = peerWidth < 48
     this.screenHeight = screenHeight
-    this.maxTableHeight = Math.max(1, screenHeight - 15)
+    this.maxTableHeight = Math.max(1, screenHeight - 16)
     this.bar.setWidth(Math.min(50, tablesWidth))
     this.peerTable.setColumns(
       this.narrow
@@ -294,6 +300,7 @@ class PeerModel {
       `  ${title} · ${lobby}`,
       '',
       body,
+      '',
       '',
       `    ${phase}`,
       `    ${progressView}`,
@@ -392,13 +399,12 @@ class PeerModel {
         ? formatAddress({ ip: this.snapshot.publicIP })
         : this.servingSpinner.view()
     const value = style().foreground('gray').width(WHOAMI_VALUE_WIDTH).render(address)
-    const separator = style().foreground('gray').render(' · ')
-    return `${label} ${value}${separator}${quit}`
+    return `${label} ${value} ${quit}`
   }
 
   _startAction(label) {
     return style()
-      .foreground(ACTION_COLORS[this.spinner.frame % ACTION_COLORS.length])
+      .foreground(ACTION_COLORS[this.spinner.tag % ACTION_COLORS.length])
       .render(label)
   }
 }

@@ -1,6 +1,6 @@
 # pear-speed
 
-Peer-to-peer network speed test powered by Hyperswarm.
+Peer-to-peer network speed test.
 
 ## Usage
 
@@ -16,7 +16,7 @@ Peers join the public lobby by default.
 $ pear-speed --lobby "any secret"
 ```
 
-The lobby name is hashed into an isolated 32-byte Hyperswarm topic.
+The lobby name is hashed to become a 32-byte Hyperswarm topic.
 
 ## Options
 
@@ -24,7 +24,6 @@ The lobby name is hashed into an isolated 32-byte Hyperswarm topic.
 | ----------------- | -------------------- |
 | `--lobby <name>`  | Join a private lobby |
 | `--version`, `-v` | Show the version     |
-| `--help`, `-h`    | Show help            |
 
 ## Development
 

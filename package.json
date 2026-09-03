@@ -1,6 +1,6 @@
 {
   "name": "pear-speed",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "P2P speed test",
   "bin": {
     "pear-speed": "bin.mjs"
@@ -14,7 +14,7 @@
     "cmd",
     "workers",
     "scripts",
-    "ops"
+    "lib"
   ],
   "main": "index.js",
   "scripts": {
