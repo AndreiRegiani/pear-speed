@@ -16,7 +16,7 @@ Peers join the public lobby by default.
 $ pear-speed --lobby "any secret"
 ```
 
-The lobby name is hashed to become a 32-byte Hyperswarm topic.
+The lobby name is salted/hashed to become a 32-byte Hyperswarm topic.
 
 ## Options
 
