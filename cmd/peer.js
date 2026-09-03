@@ -16,30 +16,30 @@ const UPLOAD_BAR = ['#315F9F', UPLOAD]
 const MAX_SERVER_LOGS = 100
 const WHOAMI_VALUE_WIDTH = 18
 const ACTION_COLORS = [
+  '#E65100',
+  '#F4511E',
+  '#FF5722',
+  '#FF6D00',
+  '#FF8500',
   '#FF9800',
-  '#FFA126',
-  '#FFAA36',
-  '#FFB347',
-  '#FFBC50',
-  '#FFC55A',
-  '#FFCE64',
-  '#FFD76E',
-  '#FFE078',
-  '#FFE982',
-  '#FFF18C',
-  '#FFE982',
-  '#FFE078',
-  '#FFD76E',
-  '#FFCE64',
-  '#FFC55A',
-  '#FFBC50',
-  '#FFAA36'
+  '#FFAB00',
+  '#FFB300',
+  '#FFC107',
+  '#FFD54F',
+  '#FFC107',
+  '#FFAB00',
+  '#FF8F00',
+  '#FF6D00',
+  '#FF9800',
+  '#FFB300',
+  '#FF8F00',
+  '#FF6D00'
 ]
 ip3country.init()
 
 module.exports = async function run(cmd) {
   if (cmd.flags.version) {
-    console.log(`pear-speed v${pkg.version}`)
+    console.log(pkg.version)
     return
   }
   if (!tty.isTTY(0) || !tty.isTTY(1)) throw new Error('pear-speed requires an interactive terminal')

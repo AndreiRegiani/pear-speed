@@ -286,9 +286,9 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   t.ok(model._actions().includes('[ENTER] Start test'))
   t.absent(model._actions().includes('🔥'))
   t.absent(model._actions().includes('\x1b[1;'))
-  t.ok(model._actions().includes('\x1b[38;2;255;152;0m'))
-  model.spinner.tag = 10
-  t.ok(model._actions().includes('\x1b[38;2;255;241;140m'))
+  t.ok(model._actions().includes('\x1b[38;2;230;81;0m'))
+  model.spinner.tag = 9
+  t.ok(model._actions().includes('\x1b[38;2;255;213;79m'))
   t.is(model.spinner.fps, 6)
   const view = model.view().split('\n')
   t.is(view.length, 18)
