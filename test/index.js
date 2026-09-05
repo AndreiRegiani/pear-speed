@@ -268,7 +268,7 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   for (let i = 0; i < 5; i++) model.update(new KeyMsg({ name: 'down' }))
 
   t.is(model.peerTable.rows.length, 32)
-  t.is(model.peerTable.height, 2)
+  t.is(model.peerTable.height, 1)
   t.is(model.bar.width, 50)
   t.ok(model.peerTable.rows[0][0].includes('127.0.0.32'))
   t.ok(model.peerTable.rows[31][0].includes('127.0.0.1'))
@@ -287,7 +287,7 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   t.absent(model._actions().includes('🔥'))
   t.absent(model._actions().includes('\x1b[1;'))
   t.ok(model._actions().includes('\x1b[38;2;230;81;0m'))
-  model.spinner.tag = 9
+  model.spinner.tag = 16
   t.ok(model._actions().includes('\x1b[38;2;255;213;79m'))
   t.is(model.spinner.fps, 6)
   const view = model.view().split('\n')
@@ -295,24 +295,24 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   t.ok(
     view[1].includes('🍐 PEAR SPEED') && view[1].includes('Lobby:') && view[1].includes('PUBLIC')
   )
-  t.ok(view.join('\n').includes('Peers'))
+  t.ok(view.join('\n').includes('Peer'))
   t.absent(view.join('\n').includes('IP address'))
   t.absent(view.join('\n').includes('P2P speed test'))
   t.ok(new PeerModel({}, 'any secret').view().includes('🔒 any secret'))
-  t.ok(style.stripAnsi(view[17]).includes('[q] Quit'))
-  t.ok(style.stripAnsi(view[17]).includes('whoami: ⠋'))
-  t.absent(view[17].includes('[ENTER]'))
+  t.ok(style.stripAnsi(view[16]).includes('[q] Quit'))
+  t.ok(style.stripAnsi(view[16]).includes('whoami: ⠋'))
+  t.absent(view[16].includes('[ENTER]'))
+  t.is(view[17], '')
   const loadingQuitColumn = style.width(style.stripAnsi(model._footer()).split('[q]')[0])
   model.snapshot.publicIP = '8.8.8.8'
   t.ok(model._footer().includes('\x1b[37mwhoami:\x1b[0m'))
-  t.ok(model._footer().includes('\x1b[90m🇺🇸 8.8.8.8'))
+  t.ok(model._footer().includes('\x1b[90m8.8.8.8'))
   t.ok(model._footer().includes('\x1b[37m[q]\x1b[0m'))
   t.ok(model._footer().includes('\x1b[90mQuit\x1b[0m'))
   t.absent(model._footer().includes('·'))
   t.is(style.width(style.stripAnsi(model._footer()).split('[q]')[0]), loadingQuitColumn)
   model.snapshot.publicIP = '127.0.0.1'
-  t.absent(model._footer().includes('127.0.0.1'))
-  t.ok(style.stripAnsi(model._footer()).includes('whoami: ⠋'))
+  t.ok(model._footer().includes('127.0.0.1'))
   const resultRow = view.findIndex((row) => row.includes('TOTAL'))
   t.is(view[resultRow + 1], '')
   t.is(view[resultRow + 2], '')
@@ -347,8 +347,10 @@ test('the server log records completed tests and remains bounded', (t) => {
   const timestamp = new Date(2026, 0, 2, 3, 4, 5).getTime()
   model.update({ type: 'resize', width: 150, height: 24 })
   t.is(model.peerTable.columns[0].width, 26)
+  t.is(model.peerTable.columns[0].title, ' Peer')
   t.is(model.peerTable.totalWidth, 87)
   t.is(model.serverLogTable.totalWidth, 57)
+  t.is(model.serverLogTable.columns[0].title, ' SERVED LOG')
   t.alike(model.serverLogTable.rows, [[' -']])
   t.is(style.width(model.view()), 150)
   const header = model
@@ -359,7 +361,7 @@ test('the server log records completed tests and remains bounded', (t) => {
   t.ok(header.indexOf('Peer') < header.indexOf(' SERVED'))
   t.absent(header.includes('TIME'))
   t.ok(style.stripAnsi(header).endsWith('  '))
-  t.absent(model.view().includes(' LOG'))
+  t.ok(model.view().includes(' SERVED LOG'))
   t.absent(model.view().includes('SERVER LOGS'))
 
   model.update({

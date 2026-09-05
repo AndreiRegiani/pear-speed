@@ -40,7 +40,6 @@ A test uses up to 32 idle peers at once, prefers lower-latency connections, and 
 - [`bare-tui`](https://github.com/holepunchto/bare-tui): terminal interface.
 - [`pear-runtime`](https://github.com/holepunchto/pear-runtime): automatic updates.
 - [`paparam`](https://github.com/holepunchto/paparam): CLI argument parsing.
-- [`ip3country`](https://github.com/statsig-io/ip3country): country flags for public IP addresses.
 
 ## Development
 

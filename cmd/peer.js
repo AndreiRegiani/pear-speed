@@ -2,7 +2,6 @@
 
 const tty = require('bare-tty')
 const { Program, key, progress, quit, spinner, style, table } = require('bare-tui')
-const ip3country = require('ip3country')
 const Peer = require('../lib/peer')
 const { DURATION, PHASE_DURATION } = require('../lib/constants')
 const { DOWNLOAD, UPLOAD } = require('./colors')
@@ -15,28 +14,6 @@ const DOWNLOAD_BAR = ['#007A5A', DOWNLOAD]
 const UPLOAD_BAR = ['#315F9F', UPLOAD]
 const MAX_SERVER_LOGS = 100
 const WHOAMI_VALUE_WIDTH = 18
-const ACTION_COLORS = [
-  '#E65100',
-  '#F4511E',
-  '#FF5722',
-  '#FF6D00',
-  '#FF8500',
-  '#FF9800',
-  '#FFAB00',
-  '#FFB300',
-  '#FFC107',
-  '#FFD54F',
-  '#FFC107',
-  '#FFAB00',
-  '#FF8F00',
-  '#FF6D00',
-  '#FF9800',
-  '#FFB300',
-  '#FF8F00',
-  '#FF6D00'
-]
-ip3country.init()
-
 module.exports = async function run(cmd) {
   if (cmd.flags.version) {
     console.log(pkg.version)
@@ -255,23 +232,23 @@ class PeerModel {
     const uploadWidth = remainingWidth - latencyWidth - downloadWidth
     this.narrow = peerWidth < 48
     this.screenHeight = screenHeight
-    this.maxTableHeight = Math.max(1, screenHeight - 16)
+    this.maxTableHeight = Math.max(1, screenHeight - 17)
     this.bar.setWidth(Math.min(50, tablesWidth))
     this.peerTable.setColumns(
       this.narrow
         ? [
-            { title: ' Peers', width: peerWidth - 22 },
+            { title: ' Peer', width: peerWidth - 22 },
             { title: '↓ Download', width: 10 },
             { title: '↑ Upload', width: 10 }
           ]
         : [
-            { title: ' Peers', width: peerColumnWidth },
+            { title: ' Peer', width: peerColumnWidth },
             { title: 'Latency', width: latencyWidth },
             { title: '↓ Download', width: downloadWidth },
             { title: '↑ Upload', width: uploadWidth }
           ]
     )
-    this.serverLogTable.setColumns([{ title: ' SERVED', width: serverLogWidth }])
+    this.serverLogTable.setColumns([{ title: ' SERVED LOG', width: serverLogWidth }])
     this._rows()
   }
 
@@ -310,11 +287,14 @@ class PeerModel {
       `    ${this._actions()}`
     ]
     const contentHeight = content.join('\n').split('\n').length
-    const padding = Math.max(0, this.screenHeight - contentHeight - 1)
+    const padding = Math.max(0, this.screenHeight - contentHeight - 2)
 
-    return [...content, ...Array.from({ length: padding }, () => ''), `  ${this._footer()}`].join(
-      '\n'
-    )
+    return [
+      ...content,
+      ...Array.from({ length: padding }, () => ''),
+      `  ${this._footer()}`,
+      ''
+    ].join('\n')
   }
 
   _phase() {
@@ -394,18 +374,23 @@ class PeerModel {
     const key = style().foreground('white').render('[q]')
     const quit = `${key} ${style().foreground('gray').render('Quit')}`
     const label = style().foreground('white').render('whoami:')
-    const address =
-      this.snapshot.publicIP && ip3country.lookupStr(this.snapshot.publicIP)
-        ? formatAddress({ ip: this.snapshot.publicIP })
-        : this.servingSpinner.view()
+    const address = this.snapshot.publicIP || this.servingSpinner.view()
     const value = style().foreground('gray').width(WHOAMI_VALUE_WIDTH).render(address)
     return `${label} ${value} ${quit}`
   }
 
   _startAction(label) {
-    return style()
-      .foreground(ACTION_COLORS[this.spinner.tag % ACTION_COLORS.length])
-      .render(label)
+    const step = this.spinner.tag % 32
+    const progress = (step <= 16 ? step : 32 - step) / 16
+    const start = [230, 81, 0]
+    const end = [255, 213, 79]
+    const color =
+      '#' +
+      start
+        .map((value, index) => Math.round(value + (end[index] - value) * progress))
+        .map((value) => value.toString(16).padStart(2, '0'))
+        .join('')
+    return style().foreground(color).render(label)
   }
 }
 
@@ -477,8 +462,7 @@ function formatLatency(ms) {
   return ms > 0 ? `${ms} ms` : '—'
 }
 
-function formatAddress(peer, gap = ' ') {
-  const country = ip3country.lookupStr(peer.ip)
+function formatAddress(peer) {
   const octets = peer.ip.split('.').map(Number)
   const lan =
     (octets.length === 4 &&
@@ -492,11 +476,7 @@ function formatAddress(peer, gap = ' ') {
     peer.ip === '::1' ||
     /^f[cd][0-9a-f]{2}:/i.test(peer.ip) ||
     /^fe[89ab][0-9a-f]:/i.test(peer.ip)
-  const marker = country
-    ? `${String.fromCodePoint(country.charCodeAt(0) + 127397, country.charCodeAt(1) + 127397)}${gap}`
-    : lan
-      ? `🏠${gap}`
-      : ''
+  const marker = lan ? '🏠 ' : ''
   let host = peer.ip
   if (peer.failed) host = style().foreground('red').render(host)
   return marker + host
