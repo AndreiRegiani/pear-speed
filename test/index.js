@@ -148,20 +148,22 @@ test('snapshots include the public IP observed by the DHT', (t) => {
   t.is(speedTest.snapshot().publicIP, null)
 })
 
-test('speed formatting only uses decimals below one Mbps', (t) => {
+test('speed formatting always uses Mbps', (t) => {
   const model = new PeerModel({}, 'PUBLIC')
   model.result = {
     peers: [],
-    downloadSpeed: 230_800_000 / 8,
-    uploadSpeed: 875_500 / 8
+    downloadSpeed: 2_300_000 / 8,
+    uploadSpeed: 655_400 / 8
   }
 
   const result = style.stripAnsi(model._resultView())
-  t.ok(result.includes('↓ 230 Mbps'))
-  t.ok(result.includes('↑ 875.5 Kbps'))
+  t.ok(result.includes('↓ 2 Mbps'))
+  t.ok(result.includes('↑ 0.6 Mbps'))
 
   model.result.downloadSpeed = 1_900_000_000 / 8
-  t.ok(style.stripAnsi(model._resultView()).includes('↓ 1 Gbps'))
+  t.ok(style.stripAnsi(model._resultView()).includes('↓ 1900 Mbps'))
+  model.result.downloadSpeed = 50_000 / 8
+  t.ok(style.stripAnsi(model._resultView()).includes('↓ 0.1 Mbps'))
 })
 
 test('a lower-latency arrival only replaces a fully idle peer', (t) => {
@@ -287,7 +289,7 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   t.absent(model._actions().includes('🔥'))
   t.absent(model._actions().includes('\x1b[1;'))
   t.ok(model._actions().includes('\x1b[38;2;230;81;0m'))
-  model.spinner.tag = 16
+  model.spinner.tag = 12
   t.ok(model._actions().includes('\x1b[38;2;255;213;79m'))
   t.is(model.spinner.fps, 6)
   const view = model.view().split('\n')
@@ -295,6 +297,7 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   t.ok(
     view[1].includes('🍐 PEAR SPEED') && view[1].includes('Lobby:') && view[1].includes('PUBLIC')
   )
+  t.ok(view[1].includes('\x1b[90m·\x1b[0m'))
   t.ok(view.join('\n').includes('Peer'))
   t.absent(view.join('\n').includes('IP address'))
   t.absent(view.join('\n').includes('P2P speed test'))
@@ -373,7 +376,10 @@ test('the server log records completed tests and remains bounded', (t) => {
       peers: []
     }
   })
-  t.is(style.stripAnsi(model.serverLogTable.rows[0][0]), ' 2026-01-02 03:04:05 🏠 192.168.100.42 ⠋')
+  t.is(
+    style.stripAnsi(model.serverLogTable.rows[0][0]),
+    ' 2026-01-02 03:04:05 → 🏠 192.168.100.42 ⠋'
+  )
   t.ok(model.serverLogTable.rows[0][0].includes('\x1b[38;2;0;217;163m'))
 
   model.update({
@@ -382,6 +388,7 @@ test('the server log records completed tests and remains bounded', (t) => {
   })
   model.update({ type: 'served', entry: { timestamp, ip: '192.168.100.42' } })
   t.ok(model.serverLogTable.rows[0][0].includes('2026-01-02 03:04:05'))
+  t.ok(model.serverLogTable.rows[0][0].includes(' → '))
   t.ok(model.serverLogTable.rows[0][0].includes('🏠 192.168.100.42'))
   t.ok(model.serverLogTable.rows[0][0].includes('\x1b[90m'))
   t.is(model.serverLogTable.selectedRow(), null)

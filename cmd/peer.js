@@ -191,14 +191,14 @@ class PeerModel {
     if (!peerRows.length) peerRows.push(this.narrow ? [' -', '', ''] : [' -', '', '', ''])
     const serverLogRows = this.serverLogs
       .map((entry) => [
-        ` ${style().foreground('gray').render(formatTime(entry.timestamp))} ${formatAddress({ ip: entry.ip })}`
+        ` ${style().foreground('gray').render(formatTime(entry.timestamp))} → ${formatAddress({ ip: entry.ip })}`
       ])
       .concat(
         this.snapshot.serving.map((entry) => [
           style()
             .foreground(DOWNLOAD)
             .render(
-              ` ${formatTime(entry.timestamp)} ${formatAddress({ ip: entry.ip })} ${this.servingSpinner.view()}`
+              ` ${formatTime(entry.timestamp)} → ${formatAddress({ ip: entry.ip })} ${this.servingSpinner.view()}`
             )
         ])
       )
@@ -260,6 +260,7 @@ class PeerModel {
     const title = style().bold(true).foreground(DOWNLOAD).render('🍐 PEAR SPEED')
     const lobbyName = this.lobby === 'PUBLIC' ? this.lobby : `🔒 ${this.lobby}`
     const lobby = `${style().foreground('white').render('Lobby:')} ${style().foreground('gray').render(lobbyName)}`
+    const separator = style().foreground('gray').render('·')
     const phase = this._phase()
     this.bar.gradient = this.snapshot.phase === 'upload' ? UPLOAD_BAR : DOWNLOAD_BAR
     const progressView = this.bar.view(this.result ? 1 : this.snapshot.elapsed / DURATION)
@@ -274,7 +275,7 @@ class PeerModel {
 
     const content = [
       '',
-      `  ${title} · ${lobby}`,
+      `  ${title} ${separator} ${lobby}`,
       '',
       body,
       '',
@@ -380,8 +381,8 @@ class PeerModel {
   }
 
   _startAction(label) {
-    const step = this.spinner.tag % 32
-    const progress = (step <= 16 ? step : 32 - step) / 16
+    const step = this.spinner.tag % 24
+    const progress = (step <= 12 ? step : 24 - step) / 12
     const start = [230, 81, 0]
     const end = [255, 213, 79]
     const color =
@@ -451,11 +452,9 @@ function formatLobby(value) {
 
 function formatSpeed(bytesPerSecond) {
   if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) return '-'
-  const bits = bytesPerSecond * 8
-  if (bits >= 1e9) return `${Math.floor(bits / 1e9)} Gbps`
-  if (bits >= 1e6) return `${Math.floor(bits / 1e6)} Mbps`
-  if (bits >= 1e3) return `${(bits / 1e3).toFixed(1)} Kbps`
-  return `${bits.toFixed(0)} bps`
+  const megabits = (bytesPerSecond * 8) / 1e6
+  if (megabits >= 1) return `${Math.floor(megabits)} Mbps`
+  return `${Math.max(Math.floor(megabits * 10) / 10, 0.1).toFixed(1)} Mbps`
 }
 
 function formatLatency(ms) {
