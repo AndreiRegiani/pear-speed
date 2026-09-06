@@ -254,7 +254,7 @@ class PeerModel {
             { title: '↑ Upload', width: uploadWidth }
           ]
     )
-    this.serverLogTable.setColumns([{ title: ' SERVED LOG', width: serverLogWidth }])
+    this.serverLogTable.setColumns([{ title: ' LEECHERS LOG', width: serverLogWidth }])
     this._rows()
   }
 
@@ -273,7 +273,7 @@ class PeerModel {
       this.activeTable === 'peer'
     )
     this.serverLogTable.columns[0].title = this._tableTitle(
-      'SERVED LOG',
+      'LEECHERS LOG',
       this.serverLogTable,
       this.activeTable === 'server'
     )
@@ -380,7 +380,7 @@ class PeerModel {
   _actions() {
     if (this.snapshot.phase === 'idle') {
       const available = this.snapshot.peers.some((peer) => peer.available)
-      if (this.result) return this._startAction('→ Press [ENTER] to start', 2)
+      if (this.result) return this._startAction('→ Press [ENTER] to test', 2)
       if (available) return this._startAction('[ENTER] Start test')
     }
     return ''
@@ -391,7 +391,10 @@ class PeerModel {
     const quit = `${key} ${style().foreground('gray').render('Quit')}`
     const label = style().foreground('white').render('whoami:')
     const address = this.snapshot.publicIP || this.servingSpinner.view()
-    const value = style().foreground('gray').width(WHOAMI_VALUE_WIDTH).render(address)
+    const value = style()
+      .foreground('gray')
+      .width(Math.max(WHOAMI_VALUE_WIDTH, style.width(address)))
+      .render(address)
     const overflowing =
       this.peerTable.rows.length > this.peerTable.height ||
       this.serverLogTable.rows.length > this.serverLogTable.height
