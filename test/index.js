@@ -288,7 +288,13 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   t.ok(model._actions().includes('[ENTER] Start test'))
   t.absent(model._actions().includes('🔥'))
   t.absent(model._actions().includes('\x1b[1;'))
-  t.ok(model._actions().includes('\x1b[38;2;230;81;0m'))
+  t.ok(model._actions().includes('\x1b[38;2;255;213;79m'))
+  model.spinner.tag = 5
+  t.ok(model._actions().includes('\x1b[38;2;255;213;79m'))
+  model.spinner.tag = 6
+  t.ok(model._actions().includes('\x1b[38;2;255;183;77m'))
+  model.spinner.tag = 11
+  t.ok(model._actions().includes('\x1b[38;2;255;183;77m'))
   model.spinner.tag = 12
   t.ok(model._actions().includes('\x1b[38;2;255;213;79m'))
   t.is(model.spinner.fps, 6)
@@ -314,8 +320,8 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   t.ok(model._footer().includes('\x1b[90mQuit\x1b[0m'))
   t.absent(model._footer().includes('·'))
   t.is(style.width(style.stripAnsi(model._footer()).split('[q]')[0]), loadingQuitColumn)
-  model.snapshot.publicIP = '127.0.0.1'
-  t.ok(model._footer().includes('127.0.0.1'))
+  model.snapshot.publicIP = '181.91.85.51'
+  t.is(style.stripAnsi(model._footer()), 'whoami: 181.91.85.51    [q] Quit')
   const resultRow = view.findIndex((row) => row.includes('TOTAL'))
   t.is(view[resultRow + 1], '')
   t.is(view[resultRow + 2], '')
@@ -324,6 +330,12 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   const completed = model._phase()
   t.is(completed, 'Completed · 2 peers')
   t.ok(model._actions().includes('Press [ENTER] to start'))
+  model.spinner.tag = 2
+  t.ok(model._actions().includes('\x1b[38;2;255;213;79m'))
+  model.spinner.tag = 3
+  t.ok(model._actions().includes('\x1b[38;2;255;183;77m'))
+  model.spinner.tag = 6
+  t.ok(model._actions().includes('\x1b[38;2;255;213;79m'))
   t.ok(model.view().includes('100%'))
   const completedView = model.view().split('\n')
   const completedRow = completedView.findIndex((row) => row.includes('Completed'))

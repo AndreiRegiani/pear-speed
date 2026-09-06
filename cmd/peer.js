@@ -13,7 +13,7 @@ const BORDER = 'gray'
 const DOWNLOAD_BAR = ['#007A5A', DOWNLOAD]
 const UPLOAD_BAR = ['#315F9F', UPLOAD]
 const MAX_SERVER_LOGS = 100
-const WHOAMI_VALUE_WIDTH = 18
+const WHOAMI_VALUE_WIDTH = 15
 module.exports = async function run(cmd) {
   if (cmd.flags.version) {
     console.log(pkg.version)
@@ -359,7 +359,7 @@ class PeerModel {
     const actions = []
     if (this.snapshot.phase === 'idle') {
       const available = this.snapshot.peers.some((peer) => peer.available)
-      if (this.result) actions.push(this._startAction('Press [ENTER] to start'))
+      if (this.result) actions.push(this._startAction('Press [ENTER] to start', 3))
       else if (available) actions.push(this._startAction('[ENTER] Start test'))
     }
     if (
@@ -380,17 +380,8 @@ class PeerModel {
     return `${label} ${value} ${quit}`
   }
 
-  _startAction(label) {
-    const step = this.spinner.tag % 24
-    const progress = (step <= 12 ? step : 24 - step) / 12
-    const start = [230, 81, 0]
-    const end = [255, 213, 79]
-    const color =
-      '#' +
-      start
-        .map((value, index) => Math.round(value + (end[index] - value) * progress))
-        .map((value) => value.toString(16).padStart(2, '0'))
-        .join('')
+  _startAction(label, ticks = 6) {
+    const color = this.spinner.tag % (ticks * 2) < ticks ? '#FFD54F' : '#FFB74D'
     return style().foreground(color).render(label)
   }
 }
