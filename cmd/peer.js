@@ -80,7 +80,11 @@ class PeerModel {
     }
 
     if (msg.type === 'served') {
-      this.serverLogs.push({ timestamp: msg.entry.timestamp, ip: msg.entry.ip })
+      this.serverLogs.push({
+        timestamp: msg.entry.timestamp,
+        ip: msg.entry.ip,
+        port: msg.entry.port
+      })
       if (this.serverLogs.length > MAX_SERVER_LOGS) this.serverLogs.shift()
       this._rows()
       return [this, null]
@@ -192,14 +196,14 @@ class PeerModel {
     if (!peerRows.length) peerRows.push(this.narrow ? [' -', '', ''] : [' -', '', '', ''])
     const serverLogRows = this.serverLogs
       .map((entry) => [
-        ` ${style().foreground('gray').render(formatTime(entry.timestamp))} → ${formatAddress({ ip: entry.ip })}`
+        ` ${style().foreground('gray').render(formatTime(entry.timestamp))} → ${formatAddress(entry)}`
       ])
       .concat(
         this.snapshot.serving.map((entry) => [
           style()
             .foreground(DOWNLOAD)
             .render(
-              ` ${formatTime(entry.timestamp)} → ${formatAddress({ ip: entry.ip })} ${this.servingSpinner.view()}`
+              ` ${formatTime(entry.timestamp)} → ${formatAddress(entry, false)} ${this.servingSpinner.view()}`
             )
         ])
       )
@@ -254,7 +258,7 @@ class PeerModel {
             { title: '↑ Upload', width: uploadWidth }
           ]
     )
-    this.serverLogTable.setColumns([{ title: ' LEECHERS LOG', width: serverLogWidth }])
+    this.serverLogTable.setColumns([{ title: ' LEECHERS', width: serverLogWidth }])
     this._rows()
   }
 
@@ -273,7 +277,7 @@ class PeerModel {
       this.activeTable === 'peer'
     )
     this.serverLogTable.columns[0].title = this._tableTitle(
-      'LEECHERS LOG',
+      'LEECHERS',
       this.serverLogTable,
       this.activeTable === 'server'
     )
@@ -391,9 +395,10 @@ class PeerModel {
     const quit = `${key} ${style().foreground('gray').render('Quit')}`
     const label = style().foreground('white').render('whoami:')
     const address = this.snapshot.publicIP || this.servingSpinner.view()
+    const addressWidth = style.width(address)
     const value = style()
       .foreground('gray')
-      .width(Math.max(WHOAMI_VALUE_WIDTH, style.width(address)))
+      .width(addressWidth > WHOAMI_VALUE_WIDTH ? addressWidth + 4 : WHOAMI_VALUE_WIDTH)
       .render(address)
     const overflowing =
       this.peerTable.rows.length > this.peerTable.height ||
@@ -484,7 +489,7 @@ function formatLatency(ms) {
   return ms > 0 ? `${ms} ms` : '—'
 }
 
-function formatAddress(peer) {
+function formatAddress(peer, styled = true) {
   const octets = peer.ip.split('.').map(Number)
   const lan =
     (octets.length === 4 &&
@@ -499,9 +504,12 @@ function formatAddress(peer) {
     /^f[cd][0-9a-f]{2}:/i.test(peer.ip) ||
     /^fe[89ab][0-9a-f]:/i.test(peer.ip)
   const marker = lan ? '🏠 ' : ''
-  let host = peer.ip
-  if (peer.failed) host = style().foreground('red').render(host)
-  return marker + host
+  const port = Number.isSafeInteger(peer.port) && peer.port > 0 ? `:${peer.port}` : ''
+  if (!styled) return marker + peer.ip + port
+  const host = style()
+    .foreground(peer.failed ? 'red' : 'white')
+    .render(peer.ip)
+  return marker + host + style().foreground('gray').render(port)
 }
 
 function formatPeers(peers) {

@@ -275,7 +275,9 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   t.is(model.bar.width, 44)
   t.ok(model.peerTable.rows[0][0].includes('127.0.0.32'))
   t.ok(model.peerTable.rows[31][0].includes('127.0.0.1'))
-  t.absent(model.peerTable.rows[0][0].includes(':1031'))
+  t.ok(model.peerTable.rows[0][0].includes(':1031'))
+  t.ok(model.peerTable.rows[0][0].includes('\x1b[37m127.0.0.32\x1b[0m'))
+  t.ok(model.peerTable.rows[0][0].includes('\x1b[90m:1031\x1b[0m'))
   t.is(model.peerTable.selectedRow(), null)
   t.absent(model.peerTable.view().includes('\x1b[7m'))
   t.is(model.peerTable.offset, 5)
@@ -306,7 +308,7 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   t.is(model.spinner.fps, 6)
   const view = model.view().split('\n')
   t.is(model.peerTable.columns[0].title, '›↑↓Peer')
-  t.is(model.serverLogTable.columns[0].title, ' LEECHERS LOG')
+  t.is(model.serverLogTable.columns[0].title, ' LEECHERS')
   t.is(view.length, 18)
   t.ok(
     view[1].includes('🍐 PEAR SPEED') && view[1].includes('Lobby:') && view[1].includes('PUBLIC')
@@ -332,7 +334,7 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   model.snapshot.publicIP = '181.91.85.51:123456'
   t.is(
     style.stripAnsi(model._footer()),
-    'whoami: 181.91.85.51:123456 [q] Quit [↑/↓] Scroll · [TAB] Switch table'
+    'whoami: 181.91.85.51:123456     [q] Quit [↑/↓] Scroll · [TAB] Switch table'
   )
   const resultRow = view.findIndex((row) => row.includes('TOTAL'))
   t.is(view[resultRow + 1].trim(), '')
@@ -416,11 +418,11 @@ test('the server log records completed tests and remains bounded', (t) => {
   t.is(model.peerTable.columns[0].title, ' Peer')
   t.is(model.peerTable.totalWidth, 87)
   t.is(model.serverLogTable.totalWidth, 57)
-  t.is(model.serverLogTable.columns[0].title, ' LEECHERS LOG')
+  t.is(model.serverLogTable.columns[0].title, ' LEECHERS')
   t.alike(model.serverLogTable.rows, [[' -']])
   t.is(style.width(model.view()), 150)
   t.is(model.peerTable.columns[0].title, '›Peer')
-  t.is(model.serverLogTable.columns[0].title, ' LEECHERS LOG')
+  t.is(model.serverLogTable.columns[0].title, ' LEECHERS')
   const header = model
     .view()
     .split('\n')
@@ -429,7 +431,7 @@ test('the server log records completed tests and remains bounded', (t) => {
   t.ok(header.indexOf('Peer') < header.indexOf(' LEECHERS'))
   t.absent(header.includes('TIME'))
   t.ok(style.stripAnsi(header).endsWith('  '))
-  t.ok(model.view().includes(' LEECHERS LOG'))
+  t.ok(model.view().includes(' LEECHERS'))
   t.absent(model.view().includes('SERVER LOGS'))
   t.is(model.peerTable.height, 1)
   t.is(model.serverLogTable.height, 1)
@@ -439,39 +441,49 @@ test('the server log records completed tests and remains bounded', (t) => {
     snapshot: {
       phase: 'idle',
       elapsed: 0,
-      serving: [{ timestamp, ip: '192.168.100.42' }],
+      serving: [{ timestamp, ip: '192.168.100.42', port: 12345 }],
       peers: []
     }
   })
   t.is(
     style.stripAnsi(model.serverLogTable.rows[0][0]),
-    ' 2026-01-02 03:04:05 → 🏠 192.168.100.42 ⠋'
+    ' 2026-01-02 03:04:05 → 🏠 192.168.100.42:12345 ⠋'
   )
-  t.ok(model.serverLogTable.rows[0][0].includes('\x1b[38;2;0;217;163m'))
+  const servingRow = model.serverLogTable.rows[0][0]
+  t.ok(servingRow.includes('\x1b[38;2;0;217;163m'))
+  t.absent(servingRow.includes('\x1b[37m'))
+  t.absent(servingRow.includes('\x1b[90m'))
 
   model.update({
     type: 'state',
     snapshot: { phase: 'idle', elapsed: 0, serving: [], peers: [] }
   })
-  model.update({ type: 'served', entry: { timestamp, ip: '192.168.100.42' } })
+  model.update({ type: 'served', entry: { timestamp, ip: '192.168.100.42', port: 12345 } })
   t.ok(model.serverLogTable.rows[0][0].includes('2026-01-02 03:04:05'))
   t.ok(model.serverLogTable.rows[0][0].includes(' → '))
-  t.ok(model.serverLogTable.rows[0][0].includes('🏠 192.168.100.42'))
+  t.ok(style.stripAnsi(model.serverLogTable.rows[0][0]).includes('🏠 192.168.100.42:12345'))
+  t.ok(model.serverLogTable.rows[0][0].includes(':12345'))
+  t.ok(model.serverLogTable.rows[0][0].includes('\x1b[37m192.168.100.42\x1b[0m'))
+  t.ok(model.serverLogTable.rows[0][0].includes('\x1b[90m:12345\x1b[0m'))
   t.ok(model.serverLogTable.rows[0][0].includes('\x1b[90m'))
   t.is(model.serverLogTable.selectedRow(), null)
   t.ok(model.serverLogTable.rows[0][0].includes('192.168.100.42'))
 
   for (let i = 0; i < 100; i++) {
-    model.update({ type: 'served', entry: { timestamp, ip: `10.0.0.${i}` } })
+    model.update({ type: 'served', entry: { timestamp, ip: `10.0.0.${i}`, port: 10000 + i } })
   }
   t.is(model.serverLogs.length, 100)
   t.is(model.serverLogs[99].ip, '10.0.0.99')
-  t.ok(model.serverLogTable.rows[model.serverLogTable.rows.length - 1][0].includes('🏠 10.0.0.99'))
+  t.ok(
+    style
+      .stripAnsi(model.serverLogTable.rows[model.serverLogTable.rows.length - 1][0])
+      .includes('🏠 10.0.0.99:10099')
+  )
   t.is(model.peerTable.height, 1)
   t.is(model.serverLogTable.height, 15)
   const independentView = style.stripAnsi(model.view()).split('\n')
   t.is(model.peerTable.columns[0].title, '›Peer')
-  t.is(model.serverLogTable.columns[0].title, ' ↓LEECHERS LOG')
+  t.is(model.serverLogTable.columns[0].title, ' ↓LEECHERS')
   t.ok(
     independentView.findIndex((row) => row.includes('Finding peers')) <
       independentView.findIndex((row) => row.includes('10.0.0.10'))
@@ -482,12 +494,12 @@ test('the server log records completed tests and remains bounded', (t) => {
       phase: 'idle',
       elapsed: 0,
       serving: [
-        { timestamp, ip: '192.168.100.42' },
-        { timestamp, ip: '192.168.100.43' },
-        { timestamp, ip: '192.168.100.44' }
+        { timestamp, ip: '192.168.100.42', port: 12345 },
+        { timestamp, ip: '192.168.100.43', port: 12346 },
+        { timestamp, ip: '192.168.100.44', port: 12347 }
       ],
       peers: Array.from({ length: 32 }, (_, index) =>
-        createSnapshotPeer(`127.0.0.${index + 1}`, index + 1)
+        createSnapshotPeer(`127.0.0.${index + 1}`, index + 1, 20000 + index)
       )
     }
   })
@@ -496,10 +508,15 @@ test('the server log records completed tests and remains bounded', (t) => {
   t.is(model.serverLogTable.rows.length, 103)
   model.view()
   t.is(model.peerTable.columns[0].title, '›↓Peer')
-  t.is(model.serverLogTable.columns[0].title, ' ↓LEECHERS LOG')
-  for (const ip of ['192.168.100.42', '192.168.100.43', '192.168.100.44']) {
+  t.is(model.serverLogTable.columns[0].title, ' ↓LEECHERS')
+  for (const [ip, port] of [
+    ['192.168.100.42', 12345],
+    ['192.168.100.43', 12346],
+    ['192.168.100.44', 12347]
+  ]) {
     const row = model.serverLogTable.rows.find((row) => row[0].includes(ip))[0]
     t.ok(row.includes('\x1b[38;2;0;217;163m'))
+    t.ok(style.stripAnsi(row).includes(`${ip}:${port}`))
     t.ok(style.stripAnsi(row).endsWith(' ⠋'))
   }
   model.update(new KeyMsg({ name: 'down' }))
@@ -510,19 +527,19 @@ test('the server log records completed tests and remains bounded', (t) => {
   model.update(new KeyMsg({ name: 'tab' }))
   model.view()
   t.is(model.peerTable.columns[0].title, ' ↑↓Peer')
-  t.is(model.serverLogTable.columns[0].title, '›↓LEECHERS LOG')
+  t.is(model.serverLogTable.columns[0].title, '›↓LEECHERS')
   model.update(new KeyMsg({ name: 'down' }))
   t.is(model.serverLogTable.offset, 1)
   t.is(model.peerTable.offset, 1)
   model.view()
-  t.is(model.serverLogTable.columns[0].title, '›↑↓LEECHERS LOG')
+  t.is(model.serverLogTable.columns[0].title, '›↑↓LEECHERS')
   model.update(new KeyMsg({ name: 'up' }))
   t.is(model.serverLogTable.offset, 0)
   model.update(new KeyMsg({ name: 'end' }))
   t.is(model.serverLogTable.offset, 103 - model.serverLogTable.height)
   t.is(model.serverLogTable.selectedRow(), null)
   model.view()
-  t.is(model.serverLogTable.columns[0].title, '›↑LEECHERS LOG')
+  t.is(model.serverLogTable.columns[0].title, '›↑LEECHERS')
 })
 
 test('four peers test together, serve concurrently, and repeat', { timeout: 20_000 }, async (t) => {

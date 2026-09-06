@@ -21,4 +21,5 @@ jobs:
     steps:
       - uses: holepunchto/actions/node-base@v1
       - run: npm ci
+      - run: npm audit --audit-level=low
       - run: npm test
