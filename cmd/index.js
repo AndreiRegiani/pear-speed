@@ -9,6 +9,7 @@ const cli = command(
   'pear-speed',
   summary(pkg.description),
   flag('--lobby <name>', 'Private lobby name'),
+  flag('--relay <public-key>', 'Use a blind relay for peer connections'),
   flag('--version|-v', 'Show version'),
   bail(({ err, reason }) => onerror(err || reason)),
   peer

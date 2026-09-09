@@ -20,11 +20,20 @@ The lobby name is hashed with a namespace prefix to become a 32-byte Hyperswarm 
 
 ## Options
 
-| Option            | Description          |
-| ----------------- | -------------------- |
-| `--lobby <name>`  | Join a private lobby |
-| `--version`, `-v` | Show the version     |
-| `--help`, `-h`    | Show help            |
+| Option                 | Description                            |
+| ---------------------- | -------------------------------------- |
+| `--lobby <name>`       | Join a private lobby                   |
+| `--relay <public-key>` | Use a blind relay for peer connections |
+| `--version`, `-v`      | Show the version                       |
+| `--help`, `-h`         | Show help                              |
+
+## Blind relay
+
+On networks where direct P2P connections are restricted, use [pear](https://github.com/holepunchto/pear) to start a blind-relay server on another network (`$ pear blind-relay`), then run a pear-speed client thru that network:
+
+```console
+$ pear-speed --relay <public-key>
+```
 
 ## Architecture
 
@@ -64,6 +73,14 @@ npm run make
 ```
 
 Standalone builds are written to `out/<platform>-<arch>/pear-speed`.
+
+## Supported platforms
+
+| Platform | x86_64 | arm64 |
+| -------- | ------ | ----- |
+| Linux    | ✔️     | ✔️    |
+| macOS    | ✔️     | ✔️    |
+| Windows  | ✔️     | ✔️    |
 
 ## License
 

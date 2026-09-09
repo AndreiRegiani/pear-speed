@@ -22,7 +22,7 @@ module.exports = async function run(cmd) {
   if (!tty.isTTY(0) || !tty.isTTY(1)) throw new Error('pear-speed requires an interactive terminal')
 
   const topic = cmd.flags.lobby === undefined ? undefined : createTopic(cmd.flags.lobby)
-  const op = new Peer(topic)
+  const op = new Peer(topic, { relayThrough: cmd.flags.relay })
   await runTui(op, cmd.flags.lobby === undefined ? 'PUBLIC' : formatLobby(cmd.flags.lobby))
 }
 
@@ -87,6 +87,10 @@ class PeerModel {
       })
       if (this.serverLogs.length > MAX_SERVER_LOGS) this.serverLogs.shift()
       this._rows()
+      this.serverLogTable.offset = Math.max(
+        0,
+        this.serverLogTable.rows.length - this.serverLogTable.height
+      )
       return [this, null]
     }
 
@@ -196,15 +200,15 @@ class PeerModel {
     if (!peerRows.length) peerRows.push(this.narrow ? [' -', '', ''] : [' -', '', '', ''])
     const serverLogRows = this.serverLogs
       .map((entry) => [
-        ` ${style().foreground('gray').render(formatTime(entry.timestamp))} → ${formatAddress(entry)}`
+        ` ${style()
+          .foreground('gray')
+          .render(`${formatTime(entry.timestamp)} →`)} ${formatAddress(entry)}`
       ])
       .concat(
         this.snapshot.serving.map((entry) => [
-          style()
+          ` ${style().foreground(DOWNLOAD).render(formatTime(entry.timestamp))} ${style().foreground('gray').render('→')} ${style()
             .foreground(DOWNLOAD)
-            .render(
-              ` ${formatTime(entry.timestamp)} → ${formatAddress(entry, false)} ${this.servingSpinner.view()}`
-            )
+            .render(`${formatAddress(entry, false)} ${this.servingSpinner.view()}`)}`
         ])
       )
     if (!serverLogRows.length) serverLogRows.push([' -'])
@@ -233,12 +237,12 @@ class PeerModel {
     const tablesWidth = Math.max(44, screenWidth - 6)
     const serverLogWidth = Math.max(21, Math.floor(tablesWidth * 0.4))
     const peerWidth = tablesWidth - serverLogWidth
-    const peerColumnWidth = Math.max(1, Math.min(43, Math.floor(peerWidth * 0.3)))
+    const peerColumnWidth = Math.max(23, Math.min(43, Math.floor(peerWidth * 0.3)))
     const remainingWidth = peerWidth - peerColumnWidth - 3
     const latencyWidth = Math.max(8, Math.floor(remainingWidth * 0.25))
     const downloadWidth = Math.floor((remainingWidth - latencyWidth) / 2)
     const uploadWidth = remainingWidth - latencyWidth - downloadWidth
-    this.narrow = peerWidth < 48
+    this.narrow = peerWidth < 51
     this.screenWidth = screenWidth
     this.screenHeight = screenHeight
     this.maxPeerTableHeight = Math.max(1, screenHeight - 17)
@@ -279,7 +283,8 @@ class PeerModel {
     this.serverLogTable.columns[0].title = this._tableTitle(
       'LEECHERS',
       this.serverLogTable,
-      this.activeTable === 'server'
+      this.activeTable === 'server',
+      false
     )
     this.bar.gradient = this.snapshot.phase === 'upload' ? UPLOAD_BAR : DOWNLOAD_BAR
     const progressView = this.bar.view(this.result ? 1 : this.snapshot.elapsed / DURATION)
@@ -287,7 +292,7 @@ class PeerModel {
       .border(style.borders.rounded)
       .borderForeground(BORDER)
       .render(this.peerTable.view())
-    const serverLogTable = style().margin(1, 0, 1).render(this.serverLogTable.view())
+    const serverLogTable = style().margin(1, 0, 1).render(this._serverLogTableView())
     const columnSpacing = Math.max(0, Math.min(4, this.screenHeight - 14))
     const peerColumn = [
       peerTable,
@@ -350,7 +355,7 @@ class PeerModel {
     const direction = style()
       .foreground(upload ? UPLOAD : DOWNLOAD)
       .render(upload ? '↑ Upload' : '↓ Download')
-    return `${direction} · ${formatPeers(this.snapshot.peers.length)} · ${remaining}s remaining`
+    return `${direction} · ${remaining}s remaining`
   }
 
   _resultView() {
@@ -393,7 +398,7 @@ class PeerModel {
   _footer() {
     const key = style().foreground('white').render('[q]')
     const quit = `${key} ${style().foreground('gray').render('Quit')}`
-    const label = style().foreground('white').render('whoami:')
+    const label = style().foreground('white').render('Whoami:')
     const address = this.snapshot.publicIP || this.servingSpinner.view()
     const addressWidth = style.width(address)
     const value = style()
@@ -404,16 +409,25 @@ class PeerModel {
       this.peerTable.rows.length > this.peerTable.height ||
       this.serverLogTable.rows.length > this.serverLogTable.height
     const scrollControls = overflowing
-      ? ` ${style().faint(true).render('[↑/↓] Scroll ·')} ${style().foreground('white').render('[TAB]')} ${style().foreground('gray').render('Switch table')}`
+      ? `      ${style().faint(true).render('[↑/↓] Scroll')}      ${style().foreground('white').render('[tab]')} ${style().foreground('gray').render('Switch table')}`
       : ''
     const footer = `${label} ${value} ${quit}${scrollControls}`
     return style.width(footer) + 2 <= this.screenWidth ? footer : `${quit}${scrollControls}`
   }
 
-  _tableTitle(label, table, selected) {
+  _tableTitle(label, table, selected, showDown = true) {
     const up = table.offset > 0 ? '↑' : ''
-    const down = table.offset + table.height < table.rows.length ? '↓' : ''
+    const down = showDown && table.offset + table.height < table.rows.length ? '↓' : ''
     return `${selected ? '›' : ' '}${up}${down}${label}`
+  }
+
+  _serverLogTableView() {
+    const lines = this.serverLogTable.view().split('\n')
+    if (this.serverLogTable.offset + this.serverLogTable.height < this.serverLogTable.rows.length) {
+      const last = lines.length - 1
+      lines[last] = style.truncate(`↓${lines[last]}`, this.serverLogTable.totalWidth)
+    }
+    return lines.join('\n')
   }
 
   _startAction(label, ticks = 6) {
