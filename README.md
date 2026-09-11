@@ -2,6 +2,12 @@
 
 Peer-to-peer network speed test.
 
+## Installation
+
+```console
+npx pear-install ...
+```
+
 ## Usage
 
 ```console
@@ -52,21 +58,32 @@ A test uses up to 32 idle peers at once, prefers lower-latency connections, and 
 
 ## Development
 
-Install dependencies and run locally:
+Install Bare runtime:
+
+```console
+npm i -g bare
+```
+
+Install project dependencies:
 
 ```sh
 npm ci
+```
+
+Run locally without OTA updates:
+
+```sh
 npm start
 ```
 
-## Test
+## Tests
 
 ```sh
 npm run lint
 npm test
 ```
 
-## Build
+## Standalone builds
 
 ```sh
 npm run make
