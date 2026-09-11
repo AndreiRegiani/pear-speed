@@ -4,19 +4,13 @@ Peer-to-peer network speed test.
 
 <img width="701" height="325" alt="image" src="https://github.com/user-attachments/assets/5fd37383-7db5-4c2e-b576-36433da9a05c" />
 
-## Installation
-
-```console
-npx pear-install ...
-```
-
 ## Usage
+
+Peers join the public lobby by default.
 
 ```console
 $ pear-speed
 ```
-
-Peers join the public lobby by default.
 
 ## Private lobbies
 
@@ -49,13 +43,13 @@ There is no central speed-test server. Every `pear-speed` instance joins the sam
 
 After a handshake, peers exchange zero-filled 64 KiB buffers for eight seconds in each direction. Stream backpressure controls the flow, and matching byte counts verify the result.
 
-A test uses up to 32 idle peers at once, prefers lower-latency connections, and sums their verified rates to help saturate fast links. DHT nodes only help peers discover and connect; no application server handles test traffic.
+A test uses up to 32 idle peers at once, prefers lower-latency connections, and sums their verified rates to help saturate fast links.
 
 ## Dependencies
 
 - [`hyperswarm`](https://github.com/holepunchto/hyperswarm): peer discovery and encrypted connections.
 - [`bare-tui`](https://github.com/holepunchto/bare-tui): terminal interface.
-- [`pear-runtime`](https://github.com/holepunchto/pear-runtime): automatic updates.
+- [`pear-runtime`](https://github.com/holepunchto/pear-runtime): OTA updates.
 - [`paparam`](https://github.com/holepunchto/paparam): CLI argument parsing.
 
 ## Development
