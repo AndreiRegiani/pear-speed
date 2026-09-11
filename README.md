@@ -2,6 +2,8 @@
 
 Peer-to-peer network speed test.
 
+<img width="701" height="325" alt="image" src="https://github.com/user-attachments/assets/5fd37383-7db5-4c2e-b576-36433da9a05c" />
+
 ## Installation
 
 ```console
