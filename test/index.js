@@ -289,7 +289,7 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   const ready = model._phase()
   t.is(ready, '32 peers')
   t.absent(ready.includes('Ready'))
-  t.ok(model._actions().includes('→ Press [RETURN] to test'))
+  t.ok(model._actions().includes('→ Press [ENTER] to test'))
   t.absent(model._actions().includes('Scroll'))
   t.ok(
     style.stripAnsi(model._footer()).endsWith('[q] Quit      [↑/↓] Scroll      [tab] Switch table')
@@ -343,19 +343,23 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   const resultRow = view.findIndex((row) => row.includes('TOTAL'))
   t.is(view[resultRow + 1].trim(), '')
   t.is(view[resultRow + 2].trim(), '')
-  t.ok(view[resultRow + 3].includes('[RETURN]'))
+  t.ok(view[resultRow + 3].includes('[ENTER]'))
   t.ok(finalView(model).includes('0%'))
   t.absent(finalView(model).includes('100%'))
   model.result = { peers: [{}, {}] }
   const completed = model._phase()
   t.is(completed, 'Completed · 2 peers')
-  t.is(style.stripAnsi(model._actions()), '→ Press [RETURN] to test')
+  t.is(style.stripAnsi(model._actions()), '→ Press [ENTER] to test')
   model.spinner.tag = 1
   t.ok(model._actions().includes('\x1b[38;2;255;213;79m'))
   model.spinner.tag = 2
   t.ok(model._actions().includes('\x1b[38;2;255;183;77m'))
   model.spinner.tag = 4
   t.ok(model._actions().includes('\x1b[38;2;255;213;79m'))
+  const peers = model.snapshot.peers
+  model.snapshot.peers = []
+  t.is(model._actions(), '')
+  model.snapshot.peers = peers
   t.ok(model.view().includes('100%'))
   const completedView = model.view().split('\n')
   const completedRow = completedView.findIndex((row) => row.includes('Completed'))
@@ -438,7 +442,7 @@ test('small screens do not wrap or duplicate the restart action', (t) => {
     t.is(lines.length, height)
     t.ok(lines.every((line) => style.width(line) <= width))
     t.is(
-      lines.filter((line) => style.stripAnsi(line).includes('→ Press [RETURN] to test')).length,
+      lines.filter((line) => style.stripAnsi(line).includes('→ Press [ENTER] to test')).length,
       1
     )
   }

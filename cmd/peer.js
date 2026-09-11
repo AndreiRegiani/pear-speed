@@ -389,8 +389,7 @@ class PeerModel {
   _actions() {
     if (this.snapshot.phase === 'idle') {
       const available = this.snapshot.peers.some((peer) => peer.available)
-      if (this.result) return this._startAction('→ Press [RETURN] to test', 2)
-      if (available) return this._startAction('→ Press [RETURN] to test')
+      if (available) return this._startAction('→ Press [ENTER] to test', this.result ? 2 : 6)
     }
     return ''
   }
