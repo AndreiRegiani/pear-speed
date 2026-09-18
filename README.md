@@ -37,7 +37,7 @@ On networks where direct P2P connections are restricted, use [pear](https://gith
 $ pear-speed --relay <public-key>
 ```
 
-## Architecture
+## P2P Architecture
 
 There is no central speed-test server. Every `pear-speed` instance joins the same 32-byte Hyperswarm topic as both a client and a server. The DHT handles discovery and NAT hole punching, then peers exchange test traffic over end-to-end Noise-encrypted duplex streams.
 
