@@ -253,8 +253,8 @@ test('the peer table renders, truncates, and scrolls', (t) => {
       peers: [createSnapshotPeer(ipv6)]
     }
   })
-  t.is(model.peerTable.totalWidth, 45)
-  t.is(model.serverLogTable.totalWidth, 29)
+  t.is(model.peerTable.totalWidth, 78)
+  t.is(model.serverLogTable.totalWidth, 31)
   t.ok(model.peerTable.rows[0][0].includes(ipv6))
 
   model.update({
@@ -273,7 +273,7 @@ test('the peer table renders, truncates, and scrolls', (t) => {
 
   t.is(model.peerTable.rows.length, 32)
   t.is(model.peerTable.height, 1)
-  t.is(model.bar.width, 44)
+  t.is(model.bar.width, 50)
   t.ok(model.peerTable.rows[0][0].includes('127.0.0.32'))
   t.ok(model.peerTable.rows[31][0].includes('127.0.0.1'))
   t.ok(model.peerTable.rows[0][0].includes(':1031'))
@@ -384,7 +384,7 @@ test('the peer table renders, truncates, and scrolls', (t) => {
 
 test('compact peer tables preserve addresses and speeds', (t) => {
   const model = new PeerModel({}, 'PUBLIC')
-  model.update({ type: 'resize', width: 100, height: 24 })
+  model.update({ type: 'resize', width: 104, height: 24 })
   model.update({
     type: 'state',
     snapshot: {
@@ -403,11 +403,11 @@ test('compact peer tables preserve addresses and speeds', (t) => {
 
   t.alike(
     model.peerTable.columns.map((column) => column.width),
-    [23, 8, 11, 12]
+    [23, 8, 12, 13]
   )
   t.is(
     style.stripAnsi(model.peerTable.view()).split('\n')[2],
-    ' 45.85.249.194:59556    1 ms     130 Mbps    233 Mbps    '
+    ' 45.85.249.194:59556    1 ms     130 Mbps     233 Mbps     '
   )
 })
 

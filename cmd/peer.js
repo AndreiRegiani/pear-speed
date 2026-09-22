@@ -35,6 +35,7 @@ class PeerModel {
     this.error = null
     this.exiting = false
     this.narrow = false
+    this.showLeechers = true
     this.activeTable = 'peer'
     this.maxPeerTableHeight = 10
     this.maxServerLogTableHeight = 10
@@ -142,7 +143,7 @@ class PeerModel {
     }
 
     if (msg.type === 'key') {
-      if (key.matches(msg, 'tab')) {
+      if (key.matches(msg, 'tab') && this.showLeechers) {
         this.activeTable = this.activeTable === 'peer' ? 'server' : 'peer'
         return [this, null]
       }
@@ -234,7 +235,8 @@ class PeerModel {
   }
 
   _resize(screenWidth = 80, screenHeight = 24) {
-    const tablesWidth = Math.max(44, screenWidth - 6)
+    const showLeechers = screenWidth >= 104
+    const tablesWidth = Math.max(44, screenWidth - (showLeechers ? 6 : 2))
     const serverLogWidth = Math.max(21, Math.floor(tablesWidth * 0.4))
     const peerWidth = tablesWidth - serverLogWidth
     const peerColumnWidth = Math.max(23, Math.min(43, Math.floor(peerWidth * 0.3)))
@@ -242,27 +244,35 @@ class PeerModel {
     const latencyWidth = Math.max(8, Math.floor(remainingWidth * 0.25))
     const downloadWidth = Math.floor((remainingWidth - latencyWidth) / 2)
     const uploadWidth = remainingWidth - latencyWidth - downloadWidth
-    this.narrow = peerWidth < 51
+    const fullPeerWidth = showLeechers ? peerWidth : tablesWidth
+    const fullPeerColumnWidth = Math.max(23, Math.min(43, Math.floor(fullPeerWidth * 0.3)))
+    const fullRemainingWidth = fullPeerWidth - fullPeerColumnWidth - 3
+    const fullLatencyWidth = Math.max(8, Math.floor(fullRemainingWidth * 0.25))
+    const fullDownloadWidth = Math.floor((fullRemainingWidth - fullLatencyWidth) / 2)
+    const fullUploadWidth = fullRemainingWidth - fullLatencyWidth - fullDownloadWidth
+    this.narrow = fullPeerWidth < 51
     this.screenWidth = screenWidth
     this.screenHeight = screenHeight
     this.maxPeerTableHeight = Math.max(1, screenHeight - 17)
     this.maxServerLogTableHeight = Math.max(1, screenHeight - 9)
-    this.bar.setWidth(Math.min(50, Math.max(1, peerWidth - 1)))
+    this.bar.setWidth(Math.min(50, Math.max(1, fullPeerWidth - 1)))
     this.peerTable.setColumns(
       this.narrow
         ? [
-            { title: ' Peer', width: peerWidth - 22 },
+            { title: ' Peer', width: fullPeerWidth - 22 },
             { title: '↓ Download', width: 10 },
             { title: '↑ Upload', width: 10 }
           ]
         : [
-            { title: ' Peer', width: peerColumnWidth },
-            { title: 'Latency', width: latencyWidth },
-            { title: '↓ Download', width: downloadWidth },
-            { title: '↑ Upload', width: uploadWidth }
+            { title: ' Peer', width: fullPeerColumnWidth },
+            { title: 'Latency', width: fullLatencyWidth },
+            { title: '↓ Download', width: fullDownloadWidth },
+            { title: '↑ Upload', width: fullUploadWidth }
           ]
     )
     this.serverLogTable.setColumns([{ title: ' LEECHERS', width: serverLogWidth }])
+    if (!showLeechers && this.activeTable === 'server') this.activeTable = 'peer'
+    this.showLeechers = showLeechers
     this._rows()
   }
 
@@ -292,7 +302,6 @@ class PeerModel {
       .border(style.borders.rounded)
       .borderForeground(BORDER)
       .render(this.peerTable.view())
-    const serverLogTable = style().margin(1, 0, 1).render(this._serverLogTableView())
     const columnSpacing = Math.max(0, Math.min(4, this.screenHeight - 14))
     const peerColumn = [
       peerTable,
@@ -303,9 +312,15 @@ class PeerModel {
       ...Array(Math.floor(columnSpacing / 2)).fill(''),
       `   ${this._actions()}`
     ].join('\n')
-    const body = style()
-      .margin(0, 1, 0, 1)
-      .render(style.joinHorizontal(style.position.top, peerColumn, '  ', serverLogTable))
+    let body
+    if (this.showLeechers) {
+      const serverLogTable = style().margin(1, 0, 1).render(this._serverLogTableView())
+      body = style()
+        .margin(0, 1, 0, 1)
+        .render(style.joinHorizontal(style.position.top, peerColumn, '  ', serverLogTable))
+    } else {
+      body = peerColumn
+    }
 
     const frameSpacing = Math.max(0, Math.min(3, this.screenHeight - 11))
     const content = [
