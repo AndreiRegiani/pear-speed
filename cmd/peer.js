@@ -239,11 +239,6 @@ class PeerModel {
     const tablesWidth = Math.max(44, screenWidth - (showLeechers ? 6 : 2))
     const serverLogWidth = Math.max(21, Math.floor(tablesWidth * 0.4))
     const peerWidth = tablesWidth - serverLogWidth
-    const peerColumnWidth = Math.max(23, Math.min(43, Math.floor(peerWidth * 0.3)))
-    const remainingWidth = peerWidth - peerColumnWidth - 3
-    const latencyWidth = Math.max(8, Math.floor(remainingWidth * 0.25))
-    const downloadWidth = Math.floor((remainingWidth - latencyWidth) / 2)
-    const uploadWidth = remainingWidth - latencyWidth - downloadWidth
     const fullPeerWidth = showLeechers ? peerWidth : tablesWidth
     const fullPeerColumnWidth = Math.max(23, Math.min(43, Math.floor(fullPeerWidth * 0.3)))
     const fullRemainingWidth = fullPeerWidth - fullPeerColumnWidth - 3
