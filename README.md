@@ -66,10 +66,10 @@ Install project dependencies:
 npm ci
 ```
 
-Run locally without OTA updates:
+Run:
 
 ```sh
-npm start
+bare index.js
 ```
 
 ## Tests
