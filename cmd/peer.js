@@ -298,12 +298,13 @@ class PeerModel {
       .borderForeground(BORDER)
       .render(this.peerTable.view())
     const columnSpacing = Math.max(0, Math.min(4, this.screenHeight - 14))
+    const resultViewLines = this._resultView().split('\n').map((line) => `   ${line}`)
     const peerColumn = [
       peerTable,
       ...Array(Math.ceil(columnSpacing / 2)).fill(''),
       `   ${phase}`,
       `   ${progressView}`,
-      `   ${this._resultView()}`,
+      ...resultViewLines,
       ...Array(Math.floor(columnSpacing / 2)).fill(''),
       `   ${this._actions()}`
     ].join('\n')
@@ -369,31 +370,52 @@ class PeerModel {
   }
 
   _resultView() {
-    const label = style().faint(true).render('TOTAL')
+    const label = style().render('TOTAL')
+    const labelWidth = 7
     if (this.result) {
+      const downloadSpeed = this.result.downloadSpeed
+      const uploadSpeed = this.result.uploadSpeed
       const download = style()
         .bold(true)
         .foreground(DOWNLOAD)
-        .render('↓ ' + formatSpeed(this.result.downloadSpeed))
+        .render('↓ ' + formatSpeed(downloadSpeed))
       const upload = style()
         .bold(true)
         .foreground(UPLOAD)
-        .render('↑ ' + formatSpeed(this.result.uploadSpeed))
-      return `${label}  ${download}  ${upload}`
+        .render('↑ ' + formatSpeed(uploadSpeed))
+      const downloadMB = style()
+        .foreground('gray')
+        .render('  ' + formatSpeedMB(downloadSpeed))
+      const uploadMB = style()
+        .foreground('gray')
+        .render('  ' + formatSpeedMB(uploadSpeed))
+      const line1 = `${label}  ${download}  ${upload}`
+      const line2 = `${' '.repeat(labelWidth)}${downloadMB}  ${uploadMB}`
+      return `${line1}\n${line2}`
     }
 
     const [downloadElapsed, uploadElapsed] = phaseSeconds(this.snapshot.elapsed)
     const download = this.snapshot.peers.reduce((total, peer) => total + peer.downloaded, 0)
     const upload = this.snapshot.peers.reduce((total, peer) => total + peer.uploaded, 0)
+    const downloadSpeed = download / downloadElapsed
+    const uploadSpeed = upload / uploadElapsed
     const downloadView = style()
       .bold(true)
       .foreground(DOWNLOAD)
-      .render(`↓ ${formatSpeed(download / downloadElapsed)}`)
+      .render(`↓ ${formatSpeed(downloadSpeed)}`)
     const uploadView = style()
       .bold(true)
       .foreground(UPLOAD)
-      .render(`↑ ${formatSpeed(upload / uploadElapsed)}`)
-    return `${label}  ${downloadView}  ${uploadView}`
+      .render(`↑ ${formatSpeed(uploadSpeed)}`)
+    const downloadMB = style()
+      .foreground('gray')
+      .render(`  ${formatSpeedMB(downloadSpeed)}`)
+    const uploadMB = style()
+      .foreground('gray')
+      .render(`  ${formatSpeedMB(uploadSpeed)}`)
+    const line1 = `${label}  ${downloadView}  ${uploadView}`
+    const line2 = `${' '.repeat(labelWidth)}${downloadMB}  ${uploadMB}`
+    return `${line1}\n${line2}`
   }
 
   _actions() {
@@ -465,7 +487,8 @@ async function runTui(op, lobby) {
 
 function finalView(model) {
   const progress = model.result ? 1 : model.snapshot.elapsed / DURATION
-  return `\x1b[H\x1b[2J\n  ${model._phase()}\n  ${model.bar.view(progress)}\n  ${model._resultView()}\n\n`
+  const resultViewLines = model._resultView().split('\n').map((line) => `  ${line}`)
+  return `\x1b[H\x1b[2J\n  ${model._phase()}\n  ${model.bar.view(progress)}\n${resultViewLines.join('\n')}\n\n`
 }
 
 function phaseSeconds(elapsed) {
@@ -502,10 +525,17 @@ function formatLobby(value) {
 }
 
 function formatSpeed(bytesPerSecond) {
-  if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) return '-'
+  if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) return '  -'
   const megabits = (bytesPerSecond * 8) / 1e6
-  if (megabits >= 1) return `${Math.floor(megabits)} Mbps`
-  return `${Math.max(Math.floor(megabits * 10) / 10, 0.1).toFixed(1)} Mbps`
+  if (megabits >= 1) return `${String(Math.floor(megabits)).padStart(3)} Mbps`
+  return `${Math.max(Math.floor(megabits * 10) / 10, 0.1).toFixed(1).padStart(3)} Mbps`
+}
+
+function formatSpeedMB(bytesPerSecond) {
+  if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) return '  -'
+  const megabytes = bytesPerSecond / 1e6
+  if (megabytes >= 1) return `${String(Math.floor(megabytes)).padStart(3)} MB/s`
+  return `${Math.max(Math.floor(megabytes * 10) / 10, 0.1).toFixed(1).padStart(3)} MB/s`
 }
 
 function formatLatency(ms) {

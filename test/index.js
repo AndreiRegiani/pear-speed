@@ -157,7 +157,7 @@ test('speed formatting always uses Mbps', (t) => {
   }
 
   const result = style.stripAnsi(model._resultView())
-  t.ok(result.includes('↓ 2 Mbps'))
+  t.ok(result.includes('↓   2 Mbps'))
   t.ok(result.includes('↑ 0.6 Mbps'))
 
   model.result.downloadSpeed = 1_900_000_000 / 8
@@ -341,9 +341,10 @@ test('the peer table renders, truncates, and scrolls', (t) => {
     'Whoami: 181.91.85.51:123456     [q] Quit      [↑/↓] Scroll      [tab] Switch table'
   )
   const resultRow = view.findIndex((row) => row.includes('TOTAL'))
-  t.is(view[resultRow + 1].trim(), '')
+  t.ok(view[resultRow + 1].includes('MB/s'))
   t.is(view[resultRow + 2].trim(), '')
-  t.ok(view[resultRow + 3].includes('[ENTER]'))
+  t.is(view[resultRow + 3].trim(), '')
+  t.ok(view[resultRow + 4].includes('[ENTER]'))
   t.ok(finalView(model).includes('0%'))
   t.absent(finalView(model).includes('100%'))
   model.result = { peers: [{}, {}] }
@@ -363,8 +364,9 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   t.ok(model.view().includes('100%'))
   const completedView = model.view().split('\n')
   const completedRow = completedView.findIndex((row) => row.includes('Completed'))
-  t.is(completedView[completedRow - 1].trim(), '')
+  t.ok(completedView[completedRow - 1].includes('MB/s'))
   t.is(completedView[completedRow - 2].trim(), '')
+  t.is(completedView[completedRow - 3].trim(), '')
   t.ok(finalView(model).startsWith('\x1b[H\x1b[2J\n  Completed · 2 peers\n'))
   t.ok(finalView(model).includes('100%'))
   t.ok(finalView(model).includes('TOTAL'))
@@ -407,7 +409,7 @@ test('compact peer tables preserve addresses and speeds', (t) => {
   )
   t.is(
     style.stripAnsi(model.peerTable.view()).split('\n')[2],
-    ' 45.85.249.194:59556    1 ms     130 Mbps     233 Mbps     '
+    ' 45.85.249.194:59556    1 ms      130 Mbps     233 Mbps    '
   )
 })
 
