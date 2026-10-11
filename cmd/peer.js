@@ -298,7 +298,9 @@ class PeerModel {
       .borderForeground(BORDER)
       .render(this.peerTable.view())
     const columnSpacing = Math.max(0, Math.min(4, this.screenHeight - 14))
-    const resultViewLines = this._resultView().split('\n').map((line) => `   ${line}`)
+    const resultViewLines = this._resultView()
+      .split('\n')
+      .map((line) => `   ${line}`)
     const peerColumn = [
       peerTable,
       ...Array(Math.ceil(columnSpacing / 2)).fill(''),
@@ -487,7 +489,10 @@ async function runTui(op, lobby) {
 
 function finalView(model) {
   const progress = model.result ? 1 : model.snapshot.elapsed / DURATION
-  const resultViewLines = model._resultView().split('\n').map((line) => `  ${line}`)
+  const resultViewLines = model
+    ._resultView()
+    .split('\n')
+    .map((line) => `  ${line}`)
   return `\x1b[H\x1b[2J\n  ${model._phase()}\n  ${model.bar.view(progress)}\n${resultViewLines.join('\n')}\n\n`
 }
 
@@ -528,14 +533,18 @@ function formatSpeed(bytesPerSecond) {
   if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) return '  -'
   const megabits = (bytesPerSecond * 8) / 1e6
   if (megabits >= 1) return `${String(Math.floor(megabits)).padStart(3)} Mbps`
-  return `${Math.max(Math.floor(megabits * 10) / 10, 0.1).toFixed(1).padStart(3)} Mbps`
+  return `${Math.max(Math.floor(megabits * 10) / 10, 0.1)
+    .toFixed(1)
+    .padStart(3)} Mbps`
 }
 
 function formatSpeedMB(bytesPerSecond) {
   if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) return '  -'
   const megabytes = bytesPerSecond / 1e6
   if (megabytes >= 1) return `${String(Math.floor(megabytes)).padStart(3)} MB/s`
-  return `${Math.max(Math.floor(megabytes * 10) / 10, 0.1).toFixed(1).padStart(3)} MB/s`
+  return `${Math.max(Math.floor(megabytes * 10) / 10, 0.1)
+    .toFixed(1)
+    .padStart(3)} MB/s`
 }
 
 function formatLatency(ms) {
