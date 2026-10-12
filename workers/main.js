@@ -10,13 +10,15 @@ const path = require('bare-path')
 const storage = require('bare-storage')
 const { isBareKit } = require('which-runtime')
 
-const argv = (index) => Bare.argv[index + (isBareKit ? 0 : 2)]
+const argv = (i) => Bare.argv[i + (isBareKit ? 0 : 2)]
+
 const updates = argv(0) !== 'false'
 const version = argv(1)
 const upgrade = argv(2)
 const name = argv(3)
 const dir = argv(4) || storage.persistent()
 const app = argv(5) || null
+
 const pipe = new FramedStream(Bare.IPC)
 const store = new Corestore(path.join(dir, 'pear-runtime', 'corestore'))
 const swarm = new Hyperswarm()
@@ -25,7 +27,7 @@ const pear = new PearRuntime({ dir, updates, version, upgrade, name, app, store,
 pear.updater.on('error', console.error)
 
 if (updates) {
-  swarm.on('connection', (connection) => store.replicate(connection))
+  swarm.on('connection', (conn) => store.replicate(conn))
   swarm.join(pear.updater.drive.core.discoveryKey, { client: true, server: false })
 }
 

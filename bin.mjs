@@ -9,14 +9,11 @@ import pkg from './package.json'
 import App from './app.js'
 import main from './cmd/index.js'
 
-const isDev = path.basename(process.argv[0]) === (isWindows ? 'bare.exe' : 'bare')
-const raw = process.argv.slice(isDev ? 2 : 1)
-const runtime = parseRuntime(raw)
-const terminal =
-  runtime.args.includes('--help') ||
-  runtime.args.includes('-h') ||
-  runtime.args.includes('--version') ||
-  runtime.args.includes('-v')
+const isDev = path.basename(Bare.argv[0]) === (isWindows ? 'bare.exe' : 'bare')
+const args = Bare.argv.slice(isDev ? 2 : 1)
+
+const runtime = parseRuntime(args)
+const terminal = runtime.args.some((arg) => ['--help', '-h', '--version', '-v'].includes(arg))
 const updates =
   runtime.updates === true ||
   (runtime.updates !== false && !isDev && !pkg.upgrade.includes('<YOUR_KEY_HERE'))

@@ -1,6 +1,5 @@
 'use strict'
 
-const process = require('bare-process')
 const { bail, command, flag, summary } = require('paparam')
 const peer = require('./peer')
 const pkg = require('../package.json')
@@ -15,7 +14,7 @@ const cli = command(
   peer
 )
 
-module.exports = function main(argv = process.argv.slice(2)) {
+module.exports = function main(argv = Bare.argv.slice(2)) {
   return cli.parse(argv)
 }
 

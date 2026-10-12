@@ -2,7 +2,6 @@
 
 'use strict'
 
-const process = require('bare-process')
 const main = require('./cmd')
 
-main(process.argv.slice(2))
+main(Bare.argv.slice(2))
