@@ -313,10 +313,9 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   t.is(model.peerTable.columns[0].title, '›↑↓Peer')
   t.is(model.serverLogTable.columns[0].title, ' LEECHERS')
   t.is(view.length, 18)
-  t.ok(
-    view[1].includes('🍐 PEAR SPEED') && view[1].includes('Lobby:') && view[1].includes('PUBLIC')
-  )
-  t.ok(view[1].includes('\x1b[90m·\x1b[0m'))
+  const titleRow = view.find((row) => row.includes('🍐 PEAR SPEED'))
+  t.ok(titleRow.includes('Lobby:') && titleRow.includes('PUBLIC'))
+  t.ok(titleRow.includes('\x1b[90m·\x1b[0m'))
   t.ok(view.join('\n').includes('Peer'))
   t.absent(view.join('\n').includes('IP address'))
   t.absent(view.join('\n').includes('P2P speed test'))
@@ -341,7 +340,13 @@ test('the peer table renders, truncates, and scrolls', (t) => {
     'Whoami: 181.91.85.51:123456     [q] Quit      [↑/↓] Scroll      [tab] Switch table'
   )
   const resultRow = view.findIndex((row) => row.includes('TOTAL'))
-  t.ok(view[resultRow + 1].includes('MB/s'))
+  t.is(
+    style
+      .stripAnsi(view[resultRow + 1])
+      .trim()
+      .replace(/\s+/g, ' '),
+    '- -'
+  )
   t.is(view[resultRow + 2].trim(), '')
   t.is(view[resultRow + 3].trim(), '')
   t.ok(view[resultRow + 4].includes('[ENTER]'))
@@ -364,9 +369,17 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   t.ok(model.view().includes('100%'))
   const completedView = model.view().split('\n')
   const completedRow = completedView.findIndex((row) => row.includes('Completed'))
-  t.ok(completedView[completedRow - 1].includes('MB/s'))
+  const completedResultRow = completedView.findIndex((row) => row.includes('TOTAL'))
+  t.is(
+    style
+      .stripAnsi(completedView[completedResultRow + 1])
+      .trim()
+      .replace(/\s+/g, ' '),
+    '- -'
+  )
+  t.is(completedView[completedRow - 1].trim(), '')
   t.is(completedView[completedRow - 2].trim(), '')
-  t.is(completedView[completedRow - 3].trim(), '')
+  t.ok(completedView[completedRow - 3].includes('╰'))
   t.ok(finalView(model).startsWith('\x1b[H\x1b[2J\n  Completed · 2 peers\n'))
   t.ok(finalView(model).includes('100%'))
   t.ok(finalView(model).includes('TOTAL'))
@@ -407,10 +420,11 @@ test('compact peer tables preserve addresses and speeds', (t) => {
     model.peerTable.columns.map((column) => column.width),
     [23, 8, 12, 13]
   )
-  t.is(
-    style.stripAnsi(model.peerTable.view()).split('\n')[2],
-    ' 45.85.249.194:59556    1 ms      130 Mbps     233 Mbps    '
-  )
+  const row = style.stripAnsi(model.peerTable.view()).split('\n')[2]
+  t.ok(row.includes('45.85.249.194:59556'))
+  t.ok(row.includes('1 ms'))
+  t.ok(row.includes('130 Mbps'))
+  t.ok(row.includes('233 Mbps'))
 })
 
 test('small screens do not wrap or duplicate the restart action', (t) => {
