@@ -291,9 +291,7 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   t.absent(ready.includes('Ready'))
   t.ok(model._actions().includes('→ Press [ENTER] to test'))
   t.absent(model._actions().includes('Scroll'))
-  t.ok(
-    style.stripAnsi(model._footer()).endsWith('[↑/↓] Scroll      [tab] Switch table')
-  )
+  t.ok(style.stripAnsi(model._footer()).endsWith('[↑/↓] Scroll      [tab] Switch table'))
   t.ok(model._footer().includes('\x1b[2m[↑/↓] Scroll\x1b[0m'))
   t.ok(model._footer().includes('\x1b[37m[tab]\x1b[0m'))
   t.ok(model._footer().includes('\x1b[90mSwitch table\x1b[0m'))

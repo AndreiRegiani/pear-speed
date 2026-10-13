@@ -385,12 +385,8 @@ class PeerModel {
         .bold(true)
         .foreground(UPLOAD)
         .render('↑ ' + formatSpeed(uploadSpeed))
-      const downloadMB = style()
-        .foreground('gray')
-        .render(formatSpeedMB(downloadSpeed))
-      const uploadMB = style()
-        .foreground('gray')
-        .render(formatSpeedMB(uploadSpeed))
+      const downloadMB = style().foreground('gray').render(formatSpeedMB(downloadSpeed))
+      const uploadMB = style().foreground('gray').render(formatSpeedMB(uploadSpeed))
       const line1 = `${label}  ${download}  ${upload}`
       const line2 = `${' '.repeat(labelWidth + 2)}${downloadMB}    ${uploadMB}`
       return `${line1}\n${line2}`
@@ -409,12 +405,8 @@ class PeerModel {
       .bold(true)
       .foreground(UPLOAD)
       .render(`↑ ${formatSpeed(uploadSpeed)}`)
-    const downloadMB = style()
-      .foreground('gray')
-      .render(formatSpeedMB(downloadSpeed))
-    const uploadMB = style()
-      .foreground('gray')
-      .render(formatSpeedMB(uploadSpeed))
+    const downloadMB = style().foreground('gray').render(formatSpeedMB(downloadSpeed))
+    const uploadMB = style().foreground('gray').render(formatSpeedMB(uploadSpeed))
     const line1 = `${label}  ${downloadView}  ${uploadView}`
     const line2 = `${' '.repeat(labelWidth + 2)}${downloadMB}    ${uploadMB}`
     return `${line1}\n${line2}`
