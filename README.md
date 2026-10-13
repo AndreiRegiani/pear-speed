@@ -1,6 +1,6 @@
 # pear-speed
 
-P2P network speed-test powered by [Hyperswarm](https://github.com/holepunchto/hyperswarm) running on [Bare](https://github.com/holepunchto/bare).
+P2P speed-test powered by [Hyperswarm](https://github.com/holepunchto/hyperswarm) and [Bare](https://github.com/holepunchto/bare).
 
 <img width="799" height="412" alt="image" src="https://github.com/user-attachments/assets/ef6ec733-fbc8-4286-bc1d-fcdd60aca3e7" />
 
