@@ -387,12 +387,12 @@ class PeerModel {
         .render('↑ ' + formatSpeed(uploadSpeed))
       const downloadMB = style()
         .foreground('gray')
-        .render('  ' + formatSpeedMB(downloadSpeed))
+        .render(formatSpeedMB(downloadSpeed))
       const uploadMB = style()
         .foreground('gray')
-        .render('  ' + formatSpeedMB(uploadSpeed))
+        .render(formatSpeedMB(uploadSpeed))
       const line1 = `${label}  ${download}  ${upload}`
-      const line2 = `${' '.repeat(labelWidth)}${downloadMB}  ${uploadMB}`
+      const line2 = `${' '.repeat(labelWidth + 2)}${downloadMB}    ${uploadMB}`
       return `${line1}\n${line2}`
     }
 
@@ -411,12 +411,12 @@ class PeerModel {
       .render(`↑ ${formatSpeed(uploadSpeed)}`)
     const downloadMB = style()
       .foreground('gray')
-      .render(`  ${formatSpeedMB(downloadSpeed)}`)
+      .render(formatSpeedMB(downloadSpeed))
     const uploadMB = style()
       .foreground('gray')
-      .render(`  ${formatSpeedMB(uploadSpeed)}`)
+      .render(formatSpeedMB(uploadSpeed))
     const line1 = `${label}  ${downloadView}  ${uploadView}`
-    const line2 = `${' '.repeat(labelWidth)}${downloadMB}  ${uploadMB}`
+    const line2 = `${' '.repeat(labelWidth + 2)}${downloadMB}    ${uploadMB}`
     return `${line1}\n${line2}`
   }
 
@@ -429,8 +429,6 @@ class PeerModel {
   }
 
   _footer() {
-    const key = style().foreground('white').render('[q]')
-    const quit = `${key} ${style().foreground('gray').render('Quit')}`
     const label = style().foreground('white').render('Whoami:')
     const address = this.snapshot.publicIP || this.servingSpinner.view()
     const addressWidth = style.width(address)
@@ -444,8 +442,8 @@ class PeerModel {
     const scrollControls = overflowing
       ? `      ${style().faint(true).render('[↑/↓] Scroll')}      ${style().foreground('white').render('[tab]')} ${style().foreground('gray').render('Switch table')}`
       : ''
-    const footer = `${label} ${value} ${quit}${scrollControls}`
-    return style.width(footer) + 2 <= this.screenWidth ? footer : `${quit}${scrollControls}`
+    const footer = `${label} ${value}${scrollControls}`
+    return style.width(footer) + 2 <= this.screenWidth ? footer : `${scrollControls}`
   }
 
   _tableTitle(label, table, selected, showDown = true) {
@@ -565,7 +563,7 @@ function formatAddress(peer, styled = true) {
     peer.ip === '::1' ||
     /^f[cd][0-9a-f]{2}:/i.test(peer.ip) ||
     /^fe[89ab][0-9a-f]:/i.test(peer.ip)
-  const marker = lan ? '🏠 ' : ''
+  const marker = ''
   const port = Number.isSafeInteger(peer.port) && peer.port > 0 ? `:${peer.port}` : ''
   if (!styled) return marker + peer.ip + port
   const host = style()

@@ -292,7 +292,7 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   t.ok(model._actions().includes('→ Press [ENTER] to test'))
   t.absent(model._actions().includes('Scroll'))
   t.ok(
-    style.stripAnsi(model._footer()).endsWith('[q] Quit      [↑/↓] Scroll      [tab] Switch table')
+    style.stripAnsi(model._footer()).endsWith('[↑/↓] Scroll      [tab] Switch table')
   )
   t.ok(model._footer().includes('\x1b[2m[↑/↓] Scroll\x1b[0m'))
   t.ok(model._footer().includes('\x1b[37m[tab]\x1b[0m'))
@@ -322,22 +322,19 @@ test('the peer table renders, truncates, and scrolls', (t) => {
   const privateView = new PeerModel({}, 'any secret').view()
   t.ok(privateView.includes('any secret'))
   t.absent(privateView.includes('🔒'))
-  t.ok(style.stripAnsi(view[16]).includes('[q] Quit'))
   t.ok(style.stripAnsi(view[16]).includes('Whoami: ⠋'))
   t.absent(view[16].includes('[ENTER]'))
   t.is(view[17], '')
-  const loadingQuitColumn = style.width(style.stripAnsi(model._footer()).split('[q]')[0])
+  const loadingQuitColumn = style.width(style.stripAnsi(model._footer()).split('[tab]')[0])
   model.snapshot.publicIP = '8.8.8.8'
   t.ok(model._footer().includes('\x1b[37mWhoami:\x1b[0m'))
   t.ok(model._footer().includes('\x1b[90m8.8.8.8'))
-  t.ok(model._footer().includes('\x1b[37m[q]\x1b[0m'))
-  t.ok(model._footer().includes('\x1b[90mQuit\x1b[0m'))
-  t.is(style.width(style.stripAnsi(model._footer()).split('[q]')[0]), loadingQuitColumn)
+  t.is(style.width(style.stripAnsi(model._footer()).split('[tab]')[0]), loadingQuitColumn)
   model.update({ type: 'resize', width: 120, height: 18 })
   model.snapshot.publicIP = '181.91.85.51:123456'
   t.is(
     style.stripAnsi(model._footer()),
-    'Whoami: 181.91.85.51:123456     [q] Quit      [↑/↓] Scroll      [tab] Switch table'
+    'Whoami: 181.91.85.51:123456          [↑/↓] Scroll      [tab] Switch table'
   )
   const resultRow = view.findIndex((row) => row.includes('TOTAL'))
   t.is(
@@ -501,7 +498,7 @@ test('the server log records completed tests and remains bounded', (t) => {
   })
   t.is(
     style.stripAnsi(model.serverLogTable.rows[0][0]),
-    ' 2026-01-02 03:04:05 → 🏠 192.168.100.42:12345 ⠋'
+    ' 2026-01-02 03:04:05 → 192.168.100.42:12345 ⠋'
   )
   const servingRow = model.serverLogTable.rows[0][0]
   t.ok(servingRow.includes('\x1b[38;2;0;217;163m'))
@@ -515,7 +512,7 @@ test('the server log records completed tests and remains bounded', (t) => {
   model.update({ type: 'served', entry: { timestamp, ip: '192.168.100.42', port: 12345 } })
   t.ok(model.serverLogTable.rows[0][0].includes('2026-01-02 03:04:05'))
   t.ok(style.stripAnsi(model.serverLogTable.rows[0][0]).includes(' → '))
-  t.ok(style.stripAnsi(model.serverLogTable.rows[0][0]).includes('🏠 192.168.100.42:12345'))
+  t.ok(style.stripAnsi(model.serverLogTable.rows[0][0]).includes('192.168.100.42:12345'))
   t.ok(model.serverLogTable.rows[0][0].includes(':12345'))
   t.ok(model.serverLogTable.rows[0][0].includes('\x1b[37m192.168.100.42\x1b[0m'))
   t.ok(model.serverLogTable.rows[0][0].includes('\x1b[90m:12345\x1b[0m'))
@@ -530,7 +527,7 @@ test('the server log records completed tests and remains bounded', (t) => {
   t.ok(
     style
       .stripAnsi(model.serverLogTable.rows[model.serverLogTable.rows.length - 1][0])
-      .includes('🏠 10.0.0.99:10099')
+      .includes('10.0.0.99:10099')
   )
   t.is(model.peerTable.height, 1)
   t.is(model.serverLogTable.height, 15)
