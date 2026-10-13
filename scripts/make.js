@@ -32,7 +32,8 @@ if (!supported.includes(host)) {
   child.on('exit', (code, signal) => {
     Bare.exitCode = signal ? 1 : code
     if (Bare.exitCode === 0) {
-      const binary = host === 'win32-arm64' || host === 'win32-x64' ? 'pear-speed.exe' : 'pear-speed'
+      const binary =
+        host === 'win32-arm64' || host === 'win32-x64' ? 'pear-speed.exe' : 'pear-speed'
       console.log(`Target: ./out/${host}/${binary}`)
     }
   })
