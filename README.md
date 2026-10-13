@@ -1,8 +1,12 @@
 # pear-speed
 
-Peer-to-peer network speed test.
+P2P network speed-test powered by [Hyperswarm](https://github.com/holepunchto/hyperswarm) running on [Bare](https://github.com/holepunchto/bare).
 
-<img width="701" height="325" alt="image" src="https://github.com/user-attachments/assets/5fd37383-7db5-4c2e-b576-36433da9a05c" />
+<img width="799" height="412" alt="image" src="https://github.com/user-attachments/assets/ef6ec733-fbc8-4286-bc1d-fcdd60aca3e7" />
+
+## P2P Architecture
+
+There is no central speed-test server. Every `pear-speed` instance joins the same 32-byte Hyperswarm topic as both a client and a server. The DHT handles discovery and NAT hole punching, then peers exchange test traffic over end-to-end Noise-encrypted duplex streams.
 
 ## Usage
 
@@ -20,49 +24,12 @@ $ pear-speed --lobby "any secret"
 
 The lobby name is hashed with a namespace prefix to become a 32-byte Hyperswarm topic.
 
-## Options
-
-| Option                 | Description                            |
-| ---------------------- | -------------------------------------- |
-| `--lobby <name>`       | Join a private lobby                   |
-| `--relay <public-key>` | Use a blind relay for peer connections |
-| `--version`, `-v`      | Show the version                       |
-| `--help`, `-h`         | Show help                              |
-
-## Blind relay
-
-On networks where direct P2P connections are restricted, use [pear](https://github.com/holepunchto/pear) to start a blind-relay server on another network (`$ pear blind-relay`), then run a pear-speed client thru that network:
-
-```console
-$ pear-speed --relay <public-key>
-```
-
-## P2P Architecture
-
-There is no central speed-test server. Every `pear-speed` instance joins the same 32-byte Hyperswarm topic as both a client and a server. The DHT handles discovery and NAT hole punching, then peers exchange test traffic over end-to-end Noise-encrypted duplex streams.
-
-After a handshake, peers exchange zero-filled 64 KiB buffers for eight seconds in each direction. Stream backpressure controls the flow, and matching byte counts verify the result.
-
-A test uses up to 32 idle peers at once, prefers lower-latency connections, and sums their verified rates to help saturate fast links.
-
-## Dependencies
-
-- [`hyperswarm`](https://github.com/holepunchto/hyperswarm): peer discovery and encrypted connections.
-- [`bare-tui`](https://github.com/holepunchto/bare-tui): terminal interface.
-- [`pear-runtime`](https://github.com/holepunchto/pear-runtime): OTA updates.
-- [`paparam`](https://github.com/holepunchto/paparam): CLI argument parsing.
-
 ## Development
 
-Install Bare runtime:
+Install [Bare](https://github.com/holepunchto/bare) JS runtime and dependencies:
 
 ```console
 npm i -g bare
-```
-
-Install project dependencies:
-
-```sh
 npm ci
 ```
 
@@ -72,12 +39,27 @@ Run:
 bare index.js
 ```
 
+## CLI Options
+
+| Option                 | Description                            |
+| ---------------------- | -------------------------------------- |
+| `--lobby <name>`       | Join a private lobby                   |
+| `--relay <public-key>` | Use a blind relay for peer connections |
+| `--version`, `-v`      | Show the version                       |
+| `--help`, `-h`         | Show help                              |
+
 ## Tests
 
 ```sh
 npm run lint
 npm test
 ```
+
+## Stack
+
+- [`hyperswarm`](https://github.com/holepunchto/hyperswarm): peer discovery and encrypted connections.
+- [`bare-tui`](https://github.com/holepunchto/bare-tui): terminal interface (TUI).
+- [`paparam`](https://github.com/holepunchto/paparam): CLI argument parsing.
 
 ## Standalone builds
 
@@ -94,6 +76,14 @@ Standalone builds are written to `out/<platform>-<arch>/pear-speed`.
 | Linux    | ✔️     | ✔️    |
 | macOS    | ✔️     | ✔️    |
 | Windows  | ✔️     | ✔️    |
+
+## Blind relay
+
+On networks where direct P2P connections are restricted, use [pear](https://github.com/holepunchto/pear) to start a blind-relay server on another network (`$ pear blind-relay`), then run a pear-speed client thru that network:
+
+```console
+$ pear-speed --relay <public-key>
+```
 
 ## License
 
