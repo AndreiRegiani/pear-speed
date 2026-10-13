@@ -542,26 +542,12 @@ function formatLatency(ms) {
 }
 
 function formatAddress(peer, styled = true) {
-  const octets = peer.ip.split('.').map(Number)
-  const lan =
-    (octets.length === 4 &&
-      octets.every((octet) => Number.isInteger(octet) && octet >= 0 && octet <= 255) &&
-      (octets[0] === 10 ||
-        octets[0] === 127 ||
-        (octets[0] === 169 && octets[1] === 254) ||
-        (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
-        (octets[0] === 192 && octets[1] === 168))) ||
-    peer.ip === '::' ||
-    peer.ip === '::1' ||
-    /^f[cd][0-9a-f]{2}:/i.test(peer.ip) ||
-    /^fe[89ab][0-9a-f]:/i.test(peer.ip)
-  const marker = ''
   const port = Number.isSafeInteger(peer.port) && peer.port > 0 ? `:${peer.port}` : ''
-  if (!styled) return marker + peer.ip + port
+  if (!styled) return peer.ip + port
   const host = style()
     .foreground(peer.failed ? 'red' : 'white')
     .render(peer.ip)
-  return marker + host + style().foreground('gray').render(port)
+  return host + style().foreground('gray').render(port)
 }
 
 function formatPeers(peers) {
