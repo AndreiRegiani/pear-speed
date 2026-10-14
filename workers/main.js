@@ -1,6 +1,5 @@
 'use strict'
 
-const b4a = require('b4a')
 const Corestore = require('corestore')
 const FramedStream = require('framed-stream')
 const Hyperswarm = require('hyperswarm')
@@ -31,14 +30,14 @@ if (updates) {
   swarm.join(pear.updater.drive.core.discoveryKey, { client: true, server: false })
 }
 
-pear.updater.on('updating', () => pipe.write(b4a.from('updating')))
-pear.updater.on('updated', () => pipe.write(b4a.from('updated')))
+pear.updater.on('updating', () => pipe.write('updating'))
+pear.updater.on('updated', () => pipe.write('updated'))
 
 pipe.on('data', async (data) => {
   if (data.toString() !== 'pear:applyUpdate') return
   await pear.ready()
   await pear.updater.applyUpdate()
-  pipe.write(b4a.from('pear:updateApplied'))
+  pipe.write('pear:updateApplied')
 })
 
 goodbye(async () => {

@@ -46,6 +46,9 @@ test('matching receipt is verified and returns the connection to idle', (t) => {
   peer.report = b4a.alloc(0)
   const speedTest = Object.create(Peer.prototype)
   speedTest.run = { targets: [peer] }
+  speedTest.startedAt = Date.now() - 20_000
+  speedTest.downloadDuration = 8_000
+  speedTest.uploadDuration = 8_000
   speedTest.finished = false
   speedTest._update = () => {}
   speedTest._finish = () => {
@@ -64,6 +67,7 @@ test('matching receipt is verified and returns the connection to idle', (t) => {
   )
 
   t.ok(peer.verified)
+  t.ok(peer.uploadSpeed < 2048 / 8)
   t.ok(peer.done)
   t.is(peer.mode, 'idle')
   t.ok(speedTest.finished)
@@ -77,6 +81,41 @@ test('malformed receipts disconnect the peer', (t) => {
   const oversized = createReceiptTest()
   oversized.speedTest._receiveReport(oversized.peer, b4a.alloc(1025, 1))
   t.ok(oversized.peer.socket.destroyed)
+})
+
+test('aggregate upload speed uses the last verified receipt', (t) => {
+  const peers = [createPeer('verifying'), createPeer('verifying')]
+  for (const peer of peers) {
+    peer.downloaded = 2_000_000
+    peer.uploaded = 1_000_000
+    peer.measuredDownload = 1_000_000
+    peer.report = b4a.alloc(0)
+  }
+  const speedTest = Object.create(Peer.prototype)
+  let result
+  speedTest.run = { targets: peers, resolve: (value) => (result = value) }
+  speedTest.phase = 'verifying'
+  speedTest.downloadDuration = 8_000
+  speedTest.uploadDuration = 8_000
+  speedTest._update = () => {}
+  speedTest.startedAt = Date.now() - 16_000
+
+  speedTest._receiveReport(
+    peers[0],
+    b4a.from(JSON.stringify({ type: 'result', downloaded: 2_000_000, uploaded: 1_000_000 }))
+  )
+  const firstDuration = speedTest.uploadDuration
+  speedTest.startedAt = Date.now() - 20_000
+  speedTest._receiveReport(
+    peers[1],
+    b4a.from(JSON.stringify({ type: 'result', downloaded: 2_000_000, uploaded: 1_000_000 }))
+  )
+
+  t.ok(result.verified)
+  t.is(result.downloadSpeed, (2_000_000 * 1000) / speedTest.downloadDuration)
+  t.is(result.uploadSpeed, (2_000_000 * 1000) / speedTest.uploadDuration)
+  t.is(result.uploadSpeed, peers[0].uploadSpeed + peers[1].uploadSpeed)
+  t.ok(result.uploadSpeed < (2_000_000 * 1000) / firstDuration)
 })
 
 test('invalid handshakes and oversized frames disconnect peers', (t) => {
@@ -164,6 +203,17 @@ test('speed formatting always uses Mbps', (t) => {
   t.ok(style.stripAnsi(model._resultView()).includes('↓ 1900 Mbps'))
   model.result.downloadSpeed = 50_000 / 8
   t.ok(style.stripAnsi(model._resultView()).includes('↓ 0.1 Mbps'))
+})
+
+test('live upload shows only confirmed throughput', (t) => {
+  const model = new PeerModel({}, 'PUBLIC')
+  model.snapshot.phase = 'upload'
+  model.snapshot.elapsed = 12_000
+  model.snapshot.peers = [{ ...createSnapshotPeer('127.0.0.1'), uploaded: 1_000_000 }]
+
+  t.ok(style.stripAnsi(model._resultView()).includes('↑   -'))
+  model.snapshot.peers[0].uploadSpeed = 125_000
+  t.ok(style.stripAnsi(model._resultView()).includes('↑   1 Mbps'))
 })
 
 test('a lower-latency arrival only replaces a fully idle peer', (t) => {

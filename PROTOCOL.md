@@ -1,37 +1,35 @@
 # pear-speed protocol
 
-Each app joins a Hyperswarm topic, finds peers through the DHT, and exchanges test data over Hyperswarm's encrypted duplex streams. Every app can start a test and serve another app's test. No central test server is involved.
+Peers find each other through the DHT and test over encrypted Hyperswarm streams. Any peer can start or serve a test; there is no central test server.
 
 ## Topics and discovery
 
-The public topic is the 32 byte result of `SHA256(UTF8("pear-speed/public/v1\0"))`.
+Public topic: `SHA256(UTF8("pear-speed/public/v1\0"))`. Private lobby: `SHA256(UTF8("pear-speed/lobby/v1\0" + String(name)))`. Both are 32 bytes. Names are case- and space-sensitive; `\0` is part of each prefix. The prefixes separate public and private topics. Only peers on the same topic discover each other. A lobby name is not authentication.
 
-A private lobby uses `SHA256(UTF8("pear-speed/lobby/v1\0" + String(name)))`. Use the exact lobby name, including case and spaces. The `\0` byte is part of the prefix. The public and private prefixes keep their topics separate.
-
-Peers on the same topic can discover each other. Peers on different topics cannot. A lobby name selects a topic, but does not authenticate peers who know that name.
-
-Join the topic with `client: true` and `server: true`. The official app binds the DHT before joining, refreshes discovery every 2 seconds, and keeps up to 32 peer connections. A blind relay or custom DHT bootstrap changes how peers connect, but does not change the topic or stream protocol.
+The app binds the DHT, joins with `client: true` and `server: true`, refreshes every 2 seconds, and keeps up to 32 connections. A blind relay or custom DHT bootstrap changes the route, not the protocol or topic.
 
 ## Connection and messages
 
-Both peers send the ASCII bytes `pear-speed/3` as soon as the stream opens. A peer is ready after receiving the same bytes. This is the protocol version check.
+Both peers send the ASCII version token `pear-speed/3` on connection and become ready on a match.
 
-Messages have no length prefix or newline. The control tokens are `pear-speed/download`, `pear-speed/upload`, and `pear-speed/stop`. Test data is a stream of `0x00` bytes, written in 65,536 byte blocks. Read tokens across chunk boundaries and handle extra bytes in the same chunk. Respect stream backpressure when writing.
+Commands are `pear-speed/download`, `pear-speed/upload`, and `pear-speed/stop`, with no length prefix or newline. Data is `0x00` bytes in 65,536-byte blocks. Tokens may span chunks; `download` may share a chunk with `hello`, and zeros with `upload`. Other trailing bytes are invalid. Writers respect backpressure.
 
 ## Test flow
 
-An idle peer starts a test by sending `pear-speed/download`. It is the initiator. The other peer is the responder.
+An idle peer starts a test by sending `pear-speed/download`:
 
-1. The responder sends zeros continuously. The initiator counts received bytes for 8 seconds.
-2. The initiator sends `pear-speed/upload` and starts sending zeros. The responder stops sending and counts received bytes. This phase lasts 8 seconds.
-3. The initiator sends `pear-speed/stop`. The responder replies with one UTF8 JSON object, such as `{"type":"result","downloaded":65536,"uploaded":65536}`. `downloaded` is the number of bytes the responder sent. `uploaded` is the number it received. Both peers can then use the connection for another test.
+1. The responder streams zeros. The initiator counts received bytes for 8 seconds.
+2. The initiator sends `pear-speed/upload` and writes zeros for 8 seconds. The responder stops writing and counts received bytes, including queued data delivered later.
+3. The initiator sends `pear-speed/stop`. The responder replies with UTF-8 JSON, such as `{"type":"result","downloaded":65536,"uploaded":65536}`. `downloaded` counts bytes it wrote; `uploaded` counts bytes it received. The connection can then serve another test.
 
-The initiator may still receive zeros sent before the responder saw `upload`. It counts these during verification, before the JSON reply. The reply has no separate delimiter. Its first byte is nonzero, so it follows the zero data in the stream. It can arrive in several chunks. The official app accepts at most 1,024 reply bytes.
+Zeros sent before the responder saw `upload` may arrive before the reply. The initiator counts them during verification. The JSON starts with a nonzero byte, has no delimiter, may span chunks, and is limited to 1,024 bytes.
 
-The initiator checks that both reported counts equal its own received and sent counts. It calculates download speed from bytes received during the first phase and upload speed from confirmed bytes during the second phase. An unverified upload contributes zero to the reported upload speed. A test can run against several idle peers at once, then sum their rates.
+The initiator checks the reply against its received and queued counts. Download speed is bytes received in the first phase divided by its measured duration. Upload speed is confirmed bytes across all peers divided by the longer of the local upload phase and the time from upload start to the last verified reply. This includes queued data draining after the send window. Unverified uploads count as zero.
+
+A test uses all ready, idle peers and sends continuously. Enough capable peers can saturate the local connection. The result measures application payload throughput, which peers, paths, relays, or the device may limit. The app does not detect saturation.
 
 ## Concurrent tests and limits
 
-If both peers send `pear-speed/download` at the same time, compare their Hyperswarm public keys as byte arrays. The peer with the smaller key keeps its test. The other peer drops its test on that connection and serves the smaller key peer. The smaller key peer consumes the incoming `download` token and waits for zero data.
+If both peers send `pear-speed/download` together, the smaller Hyperswarm public key keeps its test. The other drops its test on that connection and serves the first peer. The first consumes the incoming `download` token and waits for zeros.
 
-The official app closes a stream if an incoming chunk exceeds 65,536 bytes or a token is invalid. It allows 10 seconds for the hello and 10 seconds to finish an idle request once started. A service session has a 30 second limit. The result reply has a 10 second limit. A lost connection or mismatched counts leave that peer's result unverified.
+An invalid token or incoming chunk over 65,536 bytes closes the stream. Limits: 10-second socket timeout during `hello`, 10 seconds for a started idle request, 30 seconds for service, and 10 seconds for a reply. A disconnect before verification or mismatched counts leaves that peer unverified.

@@ -182,19 +182,18 @@ class PeerModel {
   }
 
   _rows() {
-    const [downloadElapsed, uploadElapsed] = phaseSeconds(this.snapshot.elapsed)
+    const downloadElapsed = downloadSeconds(this.snapshot.elapsed)
     const idle = this.snapshot.phase === 'idle'
     const peerRows = this.snapshot.peers
       .slice()
       .sort((a, b) => (a.latency || Infinity) - (b.latency || Infinity))
       .map((peer) => {
         const downloadSpeed = idle ? peer.downloadSpeed : peer.downloaded / downloadElapsed
-        const uploadSpeed = idle ? peer.uploadSpeed : peer.uploaded / uploadElapsed
         const row = [
           ` ${formatAddress(peer)}`,
           style().foreground(LATENCY).render(formatLatency(peer.latency)),
           style().foreground(DOWNLOAD).render(formatSpeed(downloadSpeed)),
-          style().foreground(UPLOAD).render(formatSpeed(uploadSpeed))
+          style().foreground(UPLOAD).render(formatSpeed(peer.uploadSpeed))
         ]
         if (this.narrow) return [row[0], row[2], row[3]]
         return row
@@ -364,11 +363,10 @@ class PeerModel {
       downloadSpeed = this.result.downloadSpeed
       uploadSpeed = this.result.uploadSpeed
     } else {
-      const [downloadElapsed, uploadElapsed] = phaseSeconds(this.snapshot.elapsed)
+      const downloadElapsed = downloadSeconds(this.snapshot.elapsed)
       const download = this.snapshot.peers.reduce((total, peer) => total + peer.downloaded, 0)
-      const upload = this.snapshot.peers.reduce((total, peer) => total + peer.uploaded, 0)
       downloadSpeed = download / downloadElapsed
-      uploadSpeed = upload / uploadElapsed
+      uploadSpeed = this.snapshot.peers.reduce((total, peer) => total + peer.uploadSpeed, 0)
     }
 
     const downloadView = style()
@@ -467,13 +465,8 @@ function setTableRows(table, rows, maxHeight) {
   table.cursor = -1
 }
 
-function phaseSeconds(elapsed) {
-  const download = Math.max(Math.min(elapsed, PHASE_DURATION) / 1000, 0.1)
-  const upload = Math.max(
-    Math.min(Math.max(elapsed - PHASE_DURATION, 0), PHASE_DURATION) / 1000,
-    0.1
-  )
-  return [download, upload]
+function downloadSeconds(elapsed) {
+  return Math.max(Math.min(elapsed, PHASE_DURATION) / 1000, 0.1)
 }
 
 function formatTime(timestamp) {
