@@ -4,10 +4,11 @@ const tty = require('bare-tty')
 const { Program, key, progress, quit, spinner, style, table } = require('bare-tui')
 const Peer = require('../lib/peer')
 const { DURATION, PHASE_DURATION } = require('../lib/constants')
-const { DOWNLOAD, UPLOAD } = require('./colors')
 const createTopic = require('./topic')
 const pkg = require('../package.json')
 
+const DOWNLOAD = '#00D9A3'
+const UPLOAD = '#54A7FF'
 const LATENCY = '#C792EA'
 const BORDER = 'gray'
 const DOWNLOAD_BAR = ['#007A5A', DOWNLOAD]
@@ -22,13 +23,13 @@ module.exports = async function run(cmd) {
   if (!tty.isTTY(0) || !tty.isTTY(1)) throw new Error('pear-speed requires an interactive terminal')
 
   const topic = cmd.flags.lobby === undefined ? undefined : createTopic(cmd.flags.lobby)
-  const op = new Peer(topic, { relayThrough: cmd.flags.relay })
-  await runTui(op, cmd.flags.lobby === undefined ? 'PUBLIC' : formatLobby(cmd.flags.lobby))
+  const speedTest = new Peer(topic, { relayThrough: cmd.flags.relay })
+  await runTui(speedTest, cmd.flags.lobby === undefined ? 'PUBLIC' : formatLobby(cmd.flags.lobby))
 }
 
 class PeerModel {
-  constructor(op, lobby) {
-    this.op = op
+  constructor(speedTest, lobby) {
+    this.speedTest = speedTest
     this.lobby = lobby
     this.snapshot = { phase: 'opening', elapsed: 0, publicIP: null, serving: [], peers: [] }
     this.result = null
@@ -59,7 +60,7 @@ class PeerModel {
       this.servingSpinner.init(),
       async () => {
         try {
-          await this.op.open()
+          await this.speedTest.open()
           return { type: 'open' }
         } catch (error) {
           return { type: 'error', error }
@@ -134,7 +135,7 @@ class PeerModel {
         this,
         async () => {
           try {
-            return { type: 'done', result: await this.op.test() }
+            return { type: 'done', result: await this.speedTest.test() }
           } catch (error) {
             return { type: 'error', error }
           }
@@ -174,7 +175,7 @@ class PeerModel {
     return [
       this,
       async () => {
-        await this.op.close()
+        await this.speedTest.close()
         return quit()
       }
     ]
@@ -213,25 +214,8 @@ class PeerModel {
         ])
       )
     if (!serverLogRows.length) serverLogRows.push([' -'])
-    const peerHeight = Math.min(Math.max(peerRows.length, 1), this.maxPeerTableHeight)
-    const serverLogHeight = Math.min(
-      Math.max(serverLogRows.length, 1),
-      this.maxServerLogTableHeight
-    )
-    this.peerTable.height = peerHeight
-    this.peerTable.setRows(peerRows)
-    this.peerTable.offset = Math.min(
-      this.peerTable.offset,
-      Math.max(0, peerRows.length - peerHeight)
-    )
-    this.peerTable.cursor = -1
-    this.serverLogTable.height = serverLogHeight
-    this.serverLogTable.setRows(serverLogRows)
-    this.serverLogTable.offset = Math.min(
-      this.serverLogTable.offset,
-      Math.max(0, serverLogRows.length - serverLogHeight)
-    )
-    this.serverLogTable.cursor = -1
+    setTableRows(this.peerTable, peerRows, this.maxPeerTableHeight)
+    setTableRows(this.serverLogTable, serverLogRows, this.maxServerLogTableHeight)
   }
 
   _resize(screenWidth = 80, screenHeight = 24) {
@@ -374,29 +358,19 @@ class PeerModel {
   _resultView() {
     const label = style().render('TOTAL')
     const labelWidth = 7
+    let downloadSpeed
+    let uploadSpeed
     if (this.result) {
-      const downloadSpeed = this.result.downloadSpeed
-      const uploadSpeed = this.result.uploadSpeed
-      const download = style()
-        .bold(true)
-        .foreground(DOWNLOAD)
-        .render('↓ ' + formatSpeed(downloadSpeed))
-      const upload = style()
-        .bold(true)
-        .foreground(UPLOAD)
-        .render('↑ ' + formatSpeed(uploadSpeed))
-      const downloadMB = style().foreground('gray').render(formatSpeedMB(downloadSpeed))
-      const uploadMB = style().foreground('gray').render(formatSpeedMB(uploadSpeed))
-      const line1 = `${label}  ${download}  ${upload}`
-      const line2 = `${' '.repeat(labelWidth + 2)}${downloadMB}    ${uploadMB}`
-      return `${line1}\n${line2}`
+      downloadSpeed = this.result.downloadSpeed
+      uploadSpeed = this.result.uploadSpeed
+    } else {
+      const [downloadElapsed, uploadElapsed] = phaseSeconds(this.snapshot.elapsed)
+      const download = this.snapshot.peers.reduce((total, peer) => total + peer.downloaded, 0)
+      const upload = this.snapshot.peers.reduce((total, peer) => total + peer.uploaded, 0)
+      downloadSpeed = download / downloadElapsed
+      uploadSpeed = upload / uploadElapsed
     }
 
-    const [downloadElapsed, uploadElapsed] = phaseSeconds(this.snapshot.elapsed)
-    const download = this.snapshot.peers.reduce((total, peer) => total + peer.downloaded, 0)
-    const upload = this.snapshot.peers.reduce((total, peer) => total + peer.uploaded, 0)
-    const downloadSpeed = download / downloadElapsed
-    const uploadSpeed = upload / uploadElapsed
     const downloadView = style()
       .bold(true)
       .foreground(DOWNLOAD)
@@ -459,20 +433,20 @@ class PeerModel {
   }
 }
 
-async function runTui(op, lobby) {
-  const model = new PeerModel(op, lobby)
+async function runTui(speedTest, lobby) {
+  const model = new PeerModel(speedTest, lobby)
   const program = new Program(model, { altScreen: true })
   model._resize(program.output.columns || 80, program.output.rows || 24)
   const onupdate = (snapshot) => program.send({ type: 'state', snapshot })
   const onserved = (entry) => program.send({ type: 'served', entry })
-  op.on('update', onupdate)
-  op.on('served', onserved)
+  speedTest.on('update', onupdate)
+  speedTest.on('served', onserved)
   try {
     await program.run()
   } finally {
-    op.removeListener('update', onupdate)
-    op.removeListener('served', onserved)
-    await op.close()
+    speedTest.removeListener('update', onupdate)
+    speedTest.removeListener('served', onserved)
+    await speedTest.close()
   }
   program.output.write(finalView(model))
 }
@@ -484,6 +458,13 @@ function finalView(model) {
     .split('\n')
     .map((line) => `  ${line}`)
   return `\x1b[H\x1b[2J\n  ${model._phase()}\n  ${model.bar.view(progress)}\n${resultViewLines.join('\n')}\n\n`
+}
+
+function setTableRows(table, rows, maxHeight) {
+  table.height = Math.min(rows.length, maxHeight)
+  table.setRows(rows)
+  table.offset = Math.min(table.offset, Math.max(0, rows.length - table.height))
+  table.cursor = -1
 }
 
 function phaseSeconds(elapsed) {
@@ -520,21 +501,20 @@ function formatLobby(value) {
 }
 
 function formatSpeed(bytesPerSecond) {
-  if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) return '  -'
-  const megabits = (bytesPerSecond * 8) / 1e6
-  if (megabits >= 1) return `${String(Math.floor(megabits)).padStart(3)} Mbps`
-  return `${Math.max(Math.floor(megabits * 10) / 10, 0.1)
-    .toFixed(1)
-    .padStart(3)} Mbps`
+  return formatRate(bytesPerSecond, 8, 'Mbps')
 }
 
 function formatSpeedMB(bytesPerSecond) {
+  return formatRate(bytesPerSecond, 1, 'MB/s')
+}
+
+function formatRate(bytesPerSecond, multiplier, unit) {
   if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) return '  -'
-  const megabytes = bytesPerSecond / 1e6
-  if (megabytes >= 1) return `${String(Math.floor(megabytes)).padStart(3)} MB/s`
-  return `${Math.max(Math.floor(megabytes * 10) / 10, 0.1)
+  const rate = (bytesPerSecond * multiplier) / 1e6
+  if (rate >= 1) return `${String(Math.floor(rate)).padStart(3)} ${unit}`
+  return `${Math.max(Math.floor(rate * 10) / 10, 0.1)
     .toFixed(1)
-    .padStart(3)} MB/s`
+    .padStart(3)} ${unit}`
 }
 
 function formatLatency(ms) {

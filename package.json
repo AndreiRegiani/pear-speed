@@ -2,9 +2,7 @@
   "name": "pear-speed",
   "version": "0.9.0",
   "description": "P2P speed test",
-  "bin": {
-    "pear-speed": "bin.mjs"
-  },
+  "bin": "bin.mjs",
   "upgrade": "pear://<YOUR_KEY_HERE>",
   "files": [
     "index.js",

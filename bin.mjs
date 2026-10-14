@@ -13,12 +13,12 @@ const isDev = path.basename(Bare.argv[0]) === (isWindows ? 'bare.exe' : 'bare')
 const args = Bare.argv.slice(isDev ? 2 : 1)
 
 const runtime = parseRuntime(args)
-const terminal = runtime.args.some((arg) => ['--help', '-h', '--version', '-v'].includes(arg))
+const isInfoRequest = runtime.args.some((arg) => ['--help', '-h', '--version', '-v'].includes(arg))
 const updates =
   runtime.updates === true ||
   (runtime.updates !== false && !isDev && !pkg.upgrade.includes('<YOUR_KEY_HERE'))
 
-if (!updates || terminal) {
+if (!updates || isInfoRequest) {
   await main(runtime.args)
 } else {
   const dir = runtime.storage || path.join(persistent(), pkg.name)

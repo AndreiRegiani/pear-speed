@@ -62,7 +62,7 @@ module.exports = class App extends ReadyResource {
 
     if (message === 'updated') {
       this.emit('updated')
-      this._send('pear:applyUpdate')
+      this.pipe?.write('pear:applyUpdate')
       return
     }
 
@@ -72,9 +72,5 @@ module.exports = class App extends ReadyResource {
     }
 
     this.emit('message', message)
-  }
-
-  _send(message) {
-    this.pipe?.write(message)
   }
 }
