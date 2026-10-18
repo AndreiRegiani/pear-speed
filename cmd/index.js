@@ -1,6 +1,7 @@
 'use strict'
 
 const { bail, command, flag, summary } = require('paparam')
+
 const peer = require('./peer')
 const pkg = require('../package.json')
 

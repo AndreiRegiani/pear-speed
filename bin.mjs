@@ -5,6 +5,7 @@ import path from 'bare-path'
 import os from 'bare-os'
 import { persistent } from 'bare-storage'
 import { isWindows } from 'which-runtime'
+
 import pkg from './package.json'
 import App from './app.js'
 import main from './cmd/index.js'
@@ -44,6 +45,7 @@ function parseRuntime(args) {
   const appArgs = []
   let updates = null
   let storage = null
+
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]
     if (arg === '--no-updates') updates = false
@@ -52,5 +54,6 @@ function parseRuntime(args) {
     else if (arg.startsWith('--storage=')) storage = arg.slice(10)
     else appArgs.push(arg)
   }
+
   return { args: appArgs, updates, storage }
 }

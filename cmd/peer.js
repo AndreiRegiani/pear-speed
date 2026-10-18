@@ -2,6 +2,7 @@
 
 const tty = require('bare-tty')
 const { Program, key, progress, quit, spinner, style, table } = require('bare-tui')
+
 const Peer = require('../lib/peer')
 const { DURATION, PHASE_DURATION } = require('../lib/constants')
 const createTopic = require('./topic')
@@ -15,11 +16,13 @@ const DOWNLOAD_BAR = ['#007A5A', DOWNLOAD]
 const UPLOAD_BAR = ['#315F9F', UPLOAD]
 const MAX_SERVER_LOGS = 100
 const WHOAMI_VALUE_WIDTH = 15
+
 module.exports = async function run(cmd) {
   if (cmd.flags.version) {
     console.log(pkg.version)
     return
   }
+
   if (!tty.isTTY(0) || !tty.isTTY(1)) throw new Error('pear-speed requires an interactive terminal')
 
   const topic = cmd.flags.lobby === undefined ? undefined : createTopic(cmd.flags.lobby)
@@ -148,6 +151,7 @@ class PeerModel {
         this.activeTable = this.activeTable === 'peer' ? 'server' : 'peer'
         return [this, null]
       }
+
       const active = this.activeTable === 'peer' ? this.peerTable : this.serverLogTable
       const maxOffset = Math.max(0, active.rows.length - active.height)
       if (key.matches(msg, 'up', 'k')) {
@@ -198,6 +202,7 @@ class PeerModel {
         if (this.narrow) return [row[0], row[2], row[3]]
         return row
       })
+
     if (!peerRows.length) peerRows.push(this.narrow ? [' -', '', ''] : [' -', '', '', ''])
     const serverLogRows = this.serverLogs
       .map((entry) => [
@@ -212,7 +217,9 @@ class PeerModel {
             .render(`${formatAddress(entry, false)} ${this.servingSpinner.view()}`)}`
         ])
       )
+
     if (!serverLogRows.length) serverLogRows.push([' -'])
+
     setTableRows(this.peerTable, peerRows, this.maxPeerTableHeight)
     setTableRows(this.serverLogTable, serverLogRows, this.maxServerLogTableHeight)
   }
@@ -439,6 +446,7 @@ async function runTui(speedTest, lobby) {
   const onserved = (entry) => program.send({ type: 'served', entry })
   speedTest.on('update', onupdate)
   speedTest.on('served', onserved)
+
   try {
     await program.run()
   } finally {
@@ -446,6 +454,7 @@ async function runTui(speedTest, lobby) {
     speedTest.removeListener('served', onserved)
     await speedTest.close()
   }
+
   program.output.write(finalView(model))
 }
 

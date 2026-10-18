@@ -5,6 +5,7 @@ const { randomBytes } = require('bare-crypto')
 const { KeyMsg, style } = require('bare-tui')
 const test = require('brittle')
 const createTestnet = require('hyperdht/testnet')
+
 const Peer = require('../lib/peer')
 const createTopic = require('../cmd/topic')
 const { PeerModel, finalView } = require('../cmd/peer')
