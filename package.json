@@ -1,7 +1,7 @@
 {
   "name": "pear-speed",
-  "version": "0.9.0",
-  "description": "P2P speed test",
+  "version": "0.10.0",
+  "description": "P2P speed-test powered by Hyperswarm and Bare.",
   "bin": "bin.mjs",
   "upgrade": "pear://<YOUR_KEY_HERE>",
   "files": [

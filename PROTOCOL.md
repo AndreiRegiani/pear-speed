@@ -1,6 +1,6 @@
 # pear-speed protocol
 
-Peers find each other through the DHT and test over encrypted Hyperswarm streams. Any peer can start or serve a test; there is no central test server.
+Peers find each other through the DHT and test over encrypted Hyperswarm streams. Any peer can start or serve a test, there is no central test server.
 
 ## Topics and discovery
 
