@@ -25,9 +25,10 @@ module.exports = async function run(cmd) {
 
   if (!tty.isTTY(0) || !tty.isTTY(1)) throw new Error('pear-speed requires an interactive terminal')
 
-  const topic = cmd.flags.lobby === undefined ? undefined : createTopic(cmd.flags.lobby)
+  const lobby = cmd.flags.lobby
+  const topic = lobby === undefined ? undefined : createTopic(lobby)
   const speedTest = new Peer(topic, { relayThrough: cmd.flags.relay })
-  await runTui(speedTest, cmd.flags.lobby === undefined ? 'PUBLIC' : formatLobby(cmd.flags.lobby))
+  await runTui(speedTest, lobby === undefined ? 'PUBLIC' : formatLobby(lobby))
 }
 
 class PeerModel {
@@ -204,19 +205,21 @@ class PeerModel {
       })
 
     if (!peerRows.length) peerRows.push(this.narrow ? [' -', '', ''] : [' -', '', '', ''])
-    const serverLogRows = this.serverLogs
-      .map((entry) => [
+    const serverLogRows = [
+      ...this.serverLogs.map((entry) => [
         ` ${style()
           .foreground('gray')
           .render(`${formatTime(entry.timestamp)} →`)} ${formatAddress(entry)}`
-      ])
-      .concat(
-        this.snapshot.serving.map((entry) => [
-          ` ${style().foreground(DOWNLOAD).render(formatTime(entry.timestamp))} ${style().foreground('gray').render('→')} ${style()
-            .foreground(DOWNLOAD)
-            .render(`${formatAddress(entry, false)} ${this.servingSpinner.view()}`)}`
-        ])
-      )
+      ]),
+      ...this.snapshot.serving.map((entry) => {
+        const time = style().foreground(DOWNLOAD).render(formatTime(entry.timestamp))
+        const arrow = style().foreground('gray').render('→')
+        const address = style()
+          .foreground(DOWNLOAD)
+          .render(`${formatAddress(entry, false)} ${this.servingSpinner.view()}`)
+        return [` ${time} ${arrow} ${address}`]
+      })
+    ]
 
     if (!serverLogRows.length) serverLogRows.push([' -'])
 
@@ -343,15 +346,13 @@ class PeerModel {
       return `${activity} Verifying results`
     }
     if (this.snapshot.phase === 'idle') {
-      if (this.result) {
-        return `Completed · ${formatPeers(this.result.peers.length)}`
-      }
+      if (this.result) return `Completed · ${formatPeers(this.result.peers.length)}`
+
       const available = this.snapshot.peers.filter((peer) => peer.available).length
-      if (!available) {
-        const activity = style().foreground(DOWNLOAD).render(this.spinner.view())
-        return `${activity} Finding peers`
-      }
-      return formatPeers(available)
+      if (available) return formatPeers(available)
+
+      const activity = style().foreground(DOWNLOAD).render(this.spinner.view())
+      return `${activity} Finding peers`
     }
     const upload = this.snapshot.phase === 'upload'
     const remaining = Math.max(0, Math.ceil((DURATION - this.snapshot.elapsed) / 1000))

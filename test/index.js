@@ -133,6 +133,20 @@ test('invalid handshakes and oversized frames disconnect peers', (t) => {
   t.ok(oversized.socket.destroyed)
 })
 
+test('simultaneous download commands can share a chunk with data', (t) => {
+  const peer = createPeer('testing-download')
+  peer.publicKey = b4a.from([1])
+  peer.downloaded = 0
+  const speedTest = Object.create(Peer.prototype)
+  speedTest.swarm = { keyPair: { publicKey: b4a.from([0]) } }
+
+  speedTest._receiveDownload(peer, DOWNLOAD.subarray(0, 4))
+  speedTest._receiveDownload(peer, b4a.concat([DOWNLOAD.subarray(4), b4a.alloc(1024)]))
+
+  t.is(peer.downloaded, 1024)
+  t.absent(peer.socket.destroyed)
+})
+
 test('the connection limit keeps the lowest-latency idle peers', (t) => {
   t.is(MAX_PEERS, 32)
   const peers = Array.from({ length: MAX_PEERS + 1 }, (_, index) => {
@@ -206,15 +220,42 @@ test('speed formatting always uses Mbps', (t) => {
   t.ok(style.stripAnsi(model._resultView()).includes('↓ 0.1 Mbps'))
 })
 
-test('live upload shows only confirmed throughput', (t) => {
+test('live upload updates the peer table and total before verification', (t) => {
+  const peer = Object.assign(createPeer('testing-upload'), {
+    ip: '127.0.0.1',
+    port: 1234,
+    uploaded: 1_000_000,
+    measuredDownload: 0,
+    confirmedUpload: 0,
+    uploadSpeed: 0,
+    verified: false,
+    lost: false
+  })
+  const speedTest = Object.create(Peer.prototype)
+  speedTest.phase = 'upload'
+  speedTest.phaseDuration = 8_000
+  speedTest.startedAt = Date.now() - 12_000
+  speedTest.downloadDuration = 8_000
+  speedTest.peers = [peer]
+  speedTest.run = { targets: [peer] }
+  speedTest.swarm = { dht: { host: null, port: 0 } }
   const model = new PeerModel({}, 'PUBLIC')
-  model.snapshot.phase = 'upload'
-  model.snapshot.elapsed = 12_000
-  model.snapshot.peers = [{ ...createSnapshotPeer('127.0.0.1'), uploaded: 1_000_000 }]
 
-  t.ok(style.stripAnsi(model._resultView()).includes('↑   -'))
-  model.snapshot.peers[0].uploadSpeed = 125_000
-  t.ok(style.stripAnsi(model._resultView()).includes('↑   1 Mbps'))
+  model.update({ type: 'state', snapshot: speedTest.snapshot() })
+  const firstSpeed = model.snapshot.peers[0].uploadSpeed
+  const firstRow = model.peerTable.rows[0][3]
+  t.ok(firstSpeed > 0)
+  t.ok(style.stripAnsi(firstRow).includes('Mbps'))
+  t.absent(style.stripAnsi(model._resultView()).includes('↑   -'))
+
+  peer.uploaded = 4_000_000
+  model.update({ type: 'state', snapshot: speedTest.snapshot() })
+  t.ok(model.snapshot.peers[0].uploadSpeed > firstSpeed)
+  t.absent(model.peerTable.rows[0][3] === firstRow)
+
+  speedTest.phase = 'verifying'
+  model.update({ type: 'state', snapshot: speedTest.snapshot() })
+  t.ok(style.stripAnsi(model.peerTable.rows[0][3]).includes('  -'))
 })
 
 test('a lower-latency arrival only replaces a fully idle peer', (t) => {
@@ -665,7 +706,7 @@ test('four peers test together, serve concurrently, and repeat', { timeout: 20_0
   t.is(peers[0].phase, 'idle')
 
   const served = []
-  peers[3].on('served', (entry) => served.push(entry))
+  for (const peer of peers) peer.on('served', (entry) => served.push(entry))
   const first = peers[0].test()
   await waitFor(() => peers[1].snapshot().serving.length === 1)
   t.is(typeof peers[1].snapshot().serving[0].timestamp, 'number')
@@ -679,6 +720,20 @@ test('four peers test together, serve concurrently, and repeat', { timeout: 20_0
   t.ok(firstResult.verified)
   t.ok(concurrentResult.verified)
   t.ok(served.length >= 2)
+  t.is(
+    served.reduce((total, entry) => total + entry.received, 0),
+    [firstResult, concurrentResult].reduce(
+      (total, result) => total + result.peers.reduce((sum, peer) => sum + peer.uploaded, 0),
+      0
+    )
+  )
+  t.ok(
+    served.reduce((total, entry) => total + entry.sent, 0) >=
+      [firstResult, concurrentResult].reduce(
+        (total, result) => total + result.peers.reduce((sum, peer) => sum + peer.downloaded, 0),
+        0
+      )
+  )
   t.ok(
     served.every((entry) => Number.isSafeInteger(entry.timestamp) && typeof entry.ip === 'string')
   )
