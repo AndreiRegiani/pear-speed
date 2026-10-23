@@ -22,7 +22,7 @@ test('lobby names deterministically derive isolated swarm topics', (t) => {
   t.absent(b4a.equals(TOPIC, first))
 })
 
-test('a test uses every ready idle peer', (t) => {
+test('tests use every ready idle peer', (t) => {
   const ready = [createPeer(), createPeer(), createPeer()]
   const serving = createPeer('serving-download')
   const speedTest = Object.create(Peer.prototype)
